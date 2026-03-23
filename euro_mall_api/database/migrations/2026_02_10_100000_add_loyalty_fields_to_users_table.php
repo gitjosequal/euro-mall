@@ -9,8 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
+            $after = Schema::hasColumn('users', 'tier_name') ? 'tier_name' : 'locale';
+
             if (! Schema::hasColumn('users', 'current_points')) {
-                $table->unsignedInteger('current_points')->default(0)->after('tier_name');
+                $table->unsignedInteger('current_points')->default(0)->after($after);
             }
             if (! Schema::hasColumn('users', 'next_tier_points')) {
                 $table->unsignedInteger('next_tier_points')->default(4000)->after('current_points');

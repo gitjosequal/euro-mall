@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('loyalty_vouchers')) {
+            return;
+        }
+
         Schema::create('loyalty_vouchers', function (Blueprint $table) {
             $table->id();
             $table->string('title_en');

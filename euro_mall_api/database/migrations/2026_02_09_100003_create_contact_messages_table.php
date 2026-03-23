@@ -8,6 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('contact_messages')) {
+            Schema::table('contact_messages', function (Blueprint $table) {
+                if (! Schema::hasColumn('contact_messages', 'phone')) {
+                    $table->string('phone')->nullable()->after('email');
+                }
+            });
+
+            return;
+        }
+
         Schema::create('contact_messages', function (Blueprint $table) {
             $table->id();
             $table->string('name');

@@ -1,23 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/localization/app_localizations.dart';
 import '../../core/models/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/ui_components.dart';
-import '../../data/mock_data.dart';
+import '../../data/api/dashboard_models.dart';
+import '../../data/repositories/loyalty_content_repository.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  Future<DashboardSnapshot>? _future;
+
+  Future<DashboardSnapshot> _load() {
+    final lc = Localizations.localeOf(context).languageCode;
+    return context.read<LoyaltyContentRepository>().fetchDashboard(lc);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _future ??= _load();
+  }
+
+  void _retry() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final tier = MockData.tier;
-    final user = MockData.profile;
-    final transactions = MockData.recentTransactions;
     final currencyFormat = NumberFormat.currency(
       symbol: 'JD ',
       decimalDigits: 2,
@@ -26,139 +49,192 @@ class DashboardPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.tr('welcome'),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user.name,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                            height: 1.1,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          l10n.tr('offers_headline'),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+      body: FutureBuilder<DashboardSnapshot>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(l10n.tr('load_error'),
+                        textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: _retry,
+                      child: Text(l10n.tr('retry')),
                     ),
-                  ),
-                  Material(
-                    color: Colors.white,
-                    shape: const CircleBorder(),
-                    elevation: 0,
-                    shadowColor: Colors.black.withValues(alpha: 0.06),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () {},
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Icon(
-                          Icons.notifications_outlined,
-                          color: AppColors.textPrimary,
-                          size: 24,
+                  ],
+                ),
+              ),
+            );
+          }
+          final dash = snapshot.data!;
+          final tier = dash.tier;
+          final transactions = dash.recentTransactions;
+          final displayName =
+              dash.displayName?.isNotEmpty == true
+                  ? dash.displayName!
+                  : l10n.tr('guest_welcome');
+          final ptsToday =
+              dash.pointsToday >= 0 ? '+${dash.pointsToday}' : '${dash.pointsToday}';
+
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.tr('welcome'),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              displayName,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                                height: 1.1,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              l10n.tr('offers_headline'),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                      Material(
+                        color: Colors.white,
+                        shape: const CircleBorder(),
+                        elevation: 0,
+                        shadowColor: Colors.black.withValues(alpha: 0.06),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () {},
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Icon(
+                              Icons.notifications_outlined,
+                              color: AppColors.textPrimary,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: kAppPagePadding.copyWith(top: 8, bottom: 16),
+                  child: _QuickActionsRow(l10n: l10n),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: kAppPagePadding,
+                  child: _PointsHero(
+                    points: tier.currentPoints,
+                    tier: tier,
+                    l10n: l10n,
+                    onViewVouchers: () => context.go('/vouchers'),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: kAppPagePadding.copyWith(top: 8, bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: StatCard(
+                          title: l10n.tr('points_today'),
+                          value: ptsToday,
+                          subtitle: l10n.tr('earned'),
+                          icon: Icons.bolt_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: StatCard(
+                          title: l10n.tr('vouchers'),
+                          value:
+                              '${dash.activeVouchersCount} ${l10n.tr('active')}',
+                          subtitle: l10n.tr('redeem_now'),
+                          icon: Icons.qr_code_rounded,
+                          onTap: () => context.go('/vouchers'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: kAppPagePadding.copyWith(top: 8),
+                  child: SectionHeader(
+                    title: l10n.tr('recent_transactions'),
+                    actionLabel: l10n.tr('view_all'),
+                    onActionTap: () => context.go('/history'),
+                  ),
+                ),
+              ),
+              if (transactions.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: kAppPagePadding.copyWith(top: 8, bottom: 100),
+                    child: Text(
+                      l10n.tr('no_history'),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: kAppPagePadding.copyWith(top: 8, bottom: 16),
-              child: _QuickActionsRow(l10n: l10n),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: kAppPagePadding,
-              child: _PointsHero(
-                points: tier.currentPoints,
-                tier: tier,
-                l10n: l10n,
-                onViewVouchers: () => context.go('/vouchers'),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: kAppPagePadding.copyWith(top: 8, bottom: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: StatCard(
-                      title: l10n.tr('points_today'),
-                      value: '+120',
-                      subtitle: l10n.tr('earned'),
-                      icon: Icons.bolt_rounded,
+                )
+              else
+                SliverPadding(
+                  padding: kAppPagePadding.copyWith(top: 8, bottom: 100),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final t = transactions[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _TransactionTile(
+                            transaction: t,
+                            currencyFormat: currencyFormat,
+                            l10n: l10n,
+                          ),
+                        );
+                      },
+                      childCount: transactions.length,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: StatCard(
-                      title: l10n.tr('vouchers'),
-                      value:
-                          '${MockData.vouchers.where((v) => v.status != VoucherStatus.expired).length} ${l10n.tr('active')}',
-                      subtitle: l10n.tr('redeem_now'),
-                      icon: Icons.qr_code_rounded,
-                      onTap: () => context.go('/vouchers'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: kAppPagePadding.copyWith(top: 8),
-              child: SectionHeader(
-                title: l10n.tr('recent_transactions'),
-                actionLabel: l10n.tr('view_all'),
-                onActionTap: () => context.go('/history'),
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: kAppPagePadding.copyWith(top: 8, bottom: 100),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final t = transactions[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _TransactionTile(
-                    transaction: t,
-                    currencyFormat: currencyFormat,
-                    l10n: l10n,
-                  ),
-                );
-              }, childCount: transactions.length),
-            ),
-          ),
-        ],
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -354,7 +430,8 @@ class _PointsHero extends StatelessWidget {
             runSpacing: 8,
             children: [
               InfoPill(
-                label: '${l10n.tr('tier_level')}: ${tier.name}',
+                label:
+                    '${l10n.tr('tier_level')}: ${tier.name.isEmpty ? '—' : tier.name}',
                 color: Colors.white,
                 icon: Icons.star_rounded,
               ),

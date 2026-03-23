@@ -1,20 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/localization/app_localizations.dart';
 import '../../core/models/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_scaffold.dart';
-import '../../data/mock_data.dart';
+import '../../data/repositories/loyalty_content_repository.dart';
 
-class OffersPage extends StatelessWidget {
+class OffersPage extends StatefulWidget {
   const OffersPage({super.key});
+
+  @override
+  State<OffersPage> createState() => _OffersPageState();
+}
+
+class _OffersPageState extends State<OffersPage> {
+  Future<List<Offer>>? _future;
+
+  Future<List<Offer>> _load() {
+    final lc = Localizations.localeOf(context).languageCode;
+    return context.read<LoyaltyContentRepository>().fetchOffers(lc);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _future ??= _load();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final offers = MockData.offers;
     final dateFormat = DateFormat('dd MMM');
 
     return Scaffold(
@@ -32,14 +50,44 @@ class OffersPage extends StatelessWidget {
           },
         ),
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-        itemBuilder: (context, index) {
-          final offer = offers[index];
-          return _OfferCard(offer: offer, dateFormat: dateFormat, l10n: l10n);
+      body: FutureBuilder<List<Offer>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(l10n.tr('load_error')),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () => setState(() => _future = _load()),
+                      child: Text(l10n.tr('retry')),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          final offers = snapshot.data ?? [];
+          if (offers.isEmpty) {
+            return Center(child: Text(l10n.tr('no_history')));
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+            itemBuilder: (context, index) {
+              final offer = offers[index];
+              return _OfferCard(offer: offer, dateFormat: dateFormat, l10n: l10n);
+            },
+            separatorBuilder: (_, index) => const SizedBox(height: 14),
+            itemCount: offers.length,
+          );
         },
-        separatorBuilder: (_, index) => const SizedBox(height: 14),
-        itemCount: offers.length,
       ),
     );
   }

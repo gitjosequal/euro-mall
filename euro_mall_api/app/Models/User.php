@@ -19,6 +19,10 @@ use Laravel\Sanctum\HasApiTokens;
     'gender',
     'dob',
     'tier_name',
+    'current_points',
+    'next_tier_points',
+    'tier_progress',
+    'points_earned_today',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -35,6 +39,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'dob' => 'date',
+            'tier_progress' => 'decimal:2',
         ];
     }
 }

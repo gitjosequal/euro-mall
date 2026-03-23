@@ -1,19 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/api/api_exception.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/models/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_scaffold.dart';
-import '../../data/mock_data.dart';
+import '../../data/api/api_models.dart';
+import '../../data/repositories/api_repositories.dart';
 
-class PointsHistoryPage extends StatelessWidget {
+class PointsHistoryPage extends StatefulWidget {
   const PointsHistoryPage({super.key});
+
+  @override
+  State<PointsHistoryPage> createState() => _PointsHistoryPageState();
+}
+
+class _PointsHistoryPageState extends State<PointsHistoryPage> {
+  Future<List<OrderHistoryItem>>? _future;
+
+  Future<List<OrderHistoryItem>> _load() {
+    return context.read<OrderHistoryRepository>().fetchOrders();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _future ??= _load();
+  }
+
+  static WalletTransaction _toWallet(OrderHistoryItem o) {
+    return WalletTransaction(
+      id: o.id,
+      title: o.title,
+      date: o.date,
+      amount: o.amount,
+      points: o.points,
+      earned: o.earned,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final transactions = MockData.recentTransactions;
     final currencyFormat = NumberFormat.currency(
       symbol: 'JD ',
       decimalDigits: 2,
@@ -22,21 +53,80 @@ class PointsHistoryPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppPrimaryAppBar(title: l10n.tr('points_history')),
-      body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-        itemBuilder: (context, index) {
-          final txn = transactions[index];
-          return _HistoryTile(transaction: txn, currencyFormat: currencyFormat);
+      body: FutureBuilder<List<OrderHistoryItem>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            final err = snapshot.error;
+            if (err is ApiException && err.statusCode == 401) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        l10n.tr('sign_in_required'),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: () => context.push('/auth/phone'),
+                        child: Text(l10n.tr('sign_in_cta')),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(l10n.tr('load_error')),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () => setState(() => _future = _load()),
+                      child: Text(l10n.tr('retry')),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          final items = snapshot.data ?? [];
+          if (items.isEmpty) {
+            return Center(child: Text(l10n.tr('no_history')));
+          }
+          final transactions = items.map(_toWallet).toList();
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+            itemBuilder: (context, index) {
+              final txn = transactions[index];
+              return _HistoryTile(
+                transaction: txn,
+                currencyFormat: currencyFormat,
+              );
+            },
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemCount: transactions.length,
+          );
         },
-        separatorBuilder: (_, index) => const SizedBox(height: 12),
-        itemCount: transactions.length,
       ),
     );
   }
 }
 
 class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({required this.transaction, required this.currencyFormat});
+  const _HistoryTile({
+    required this.transaction,
+    required this.currencyFormat,
+  });
 
   final WalletTransaction transaction;
   final NumberFormat currencyFormat;

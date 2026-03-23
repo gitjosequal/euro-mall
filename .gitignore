@@ -11,6 +11,7 @@ euro_mall_app/build/
 euro_mall_app/.flutter-plugins-dependencies
 euro_mall_app/.flutter-plugins
 euro_mall_app/ios/Pods/
+euro_mall_app/ios/build/
 euro_mall_app/ios/.symlinks/
 euro_mall_app/macos/Pods/
 euro_mall_app/android/.gradle/

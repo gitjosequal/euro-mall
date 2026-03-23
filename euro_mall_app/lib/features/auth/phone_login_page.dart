@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/api/api_exception.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimens.dart';
 import '../../core/widgets/app_scaffold.dart';
+import '../../data/repositories/auth_repository.dart';
 
 class PhoneLoginPage extends StatefulWidget {
   const PhoneLoginPage({super.key});
@@ -15,6 +18,8 @@ class PhoneLoginPage extends StatefulWidget {
 
 class _PhoneLoginPageState extends State<PhoneLoginPage> {
   String _countryCode = '+962';
+  final _phoneCtrl = TextEditingController();
+  bool _loading = false;
 
   static const _codes = [
     ('+962', 'JO'),
@@ -23,6 +28,42 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
     ('+20', 'EG'),
     ('+1', 'US'),
   ];
+
+  @override
+  void dispose() {
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  String get _e164 {
+    final digits = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
+    return '$_countryCode$digits';
+  }
+
+  Future<void> _continue() async {
+    final l10n = AppLocalizations.of(context);
+    final digits = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.tr('phone_required'))),
+      );
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await context.read<AuthRepository>().requestOtp(_e164);
+      if (!mounted) return;
+      context.push('/auth/otp', extra: _e164);
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +169,7 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      controller: _phoneCtrl,
                       keyboardType: TextInputType.phone,
                       autofocus: false,
                       decoration: InputDecoration(
@@ -144,19 +186,28 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
                     SizedBox(
                       height: 52,
                       child: FilledButton(
-                        onPressed: () => context.go('/auth/otp'),
+                        onPressed: _loading ? null : _continue,
                         style: FilledButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        child: Text(
-                          l10n.tr('continue'),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
+                        child: _loading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                l10n.tr('continue'),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
                   ],

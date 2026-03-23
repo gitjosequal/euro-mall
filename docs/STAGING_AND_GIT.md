@@ -1,24 +1,35 @@
 # Staging API & Git
 
-## Repository
+## Repositories (canonical)
 
-Monorepo on GitHub: **https://github.com/gitjosequal/euro-mall**
+| Project | GitHub |
+|---------|--------|
+| **Laravel API** | **https://github.com/gitjosequal/euromall_laravel.git** |
+| **Flutter app** | **https://github.com/gitjosequal/euromall_flutter.git** |
 
-- `euro_mall_app/` — Flutter app  
-- `euro_mall_api/` — Laravel 13 API (`/api/v1`)
-
-Clone:
-
-```bash
-git clone https://github.com/gitjosequal/euro-mall.git
-cd euro-mall
-```
-
-If `git push` fails with **SSH host key verification**, use HTTPS remote:
+Clone each repo separately (recommended for CI/CD and access control):
 
 ```bash
-git remote set-url origin https://github.com/gitjosequal/euro-mall.git
+# Backend
+git clone https://github.com/gitjosequal/euromall_laravel.git
+cd euromall_laravel
+
+# Mobile
+git clone https://github.com/gitjosequal/euromall_flutter.git
+cd euromall_flutter
 ```
+
+If `git push` fails with **SSH host key verification**, use HTTPS remotes:
+
+```bash
+# In Laravel repo
+git remote set-url origin https://github.com/gitjosequal/euromall_laravel.git
+
+# In Flutter repo
+git remote set-url origin https://github.com/gitjosequal/euromall_flutter.git
+```
+
+**Combined workspace:** If you keep both folders in one directory (e.g. `euro_mall/`), set `origin` only inside each project folder to the matching URL above—do not use a single monorepo remote unless you maintain one.
 
 ## Language (first launch)
 
@@ -27,11 +38,11 @@ git remote set-url origin https://github.com/gitjosequal/euro-mall.git
 
 ## Flutter → API URL
 
-- **File:** `euro_mall_app/lib/core/config/app_environment.dart`
+- **File:** `lib/core/config/app_environment.dart` (in **euromall_flutter**)
 - **Default:** `https://euromall.josequal.net/api/v1`
 
 ```bash
-cd euro_mall_app
+cd euromall_flutter
 flutter run --dart-define=API_BASE_URL=https://euromall.josequal.net/api/v1
 ```
 
@@ -40,7 +51,7 @@ See `.vscode/launch.json` for `toolArgs` with the same define.
 ## Laravel API (local)
 
 ```bash
-cd euro_mall_api
+cd euromall_laravel
 composer install
 cp .env.example .env
 php artisan key:generate
@@ -51,8 +62,8 @@ php artisan serve
 
 Point the app at `http://127.0.0.1:8000/api/v1` when testing locally.
 
-Full contract: **`docs/API.md`**.
+Full contract: **`docs/API.md`** (keep a copy in the Laravel repo alongside the API, or link from the Flutter repo README).
 
 ## Deploy backend to staging
 
-On the server: pull repo (or only `euro_mall_api/`), set `.env`, run `composer install --no-dev`, `php artisan migrate --force`, cache config.
+On the server: pull **euromall_laravel**, set `.env`, run `composer install --no-dev`, `php artisan migrate --force`, cache config.

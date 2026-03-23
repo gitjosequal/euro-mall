@@ -1,9 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AppConfigController;
+use App\Http\Controllers\Api\V1\AuthOtpController;
 use App\Http\Controllers\Api\V1\CmsPageController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\FaqController;
+use App\Http\Controllers\Api\V1\HomeController;
+use App\Http\Controllers\Api\V1\LoyaltyOfferController;
+use App\Http\Controllers\Api\V1\LoyaltyVoucherController;
+use App\Http\Controllers\Api\V1\MallBranchController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -17,6 +22,15 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->group(function () {
+    Route::post('auth/otp/send', [AuthOtpController::class, 'send']);
+    Route::post('auth/otp/verify', [AuthOtpController::class, 'verify']);
+
+    Route::get('home/dashboard', [HomeController::class, 'dashboard']);
+    Route::get('vouchers', [LoyaltyVoucherController::class, 'index']);
+    Route::get('vouchers/{id}', [LoyaltyVoucherController::class, 'show']);
+    Route::get('offers', [LoyaltyOfferController::class, 'index']);
+    Route::get('branches', [MallBranchController::class, 'index']);
+
     Route::get('app/config', [AppConfigController::class, 'show']);
     Route::get('cms/pages/{slug}', [CmsPageController::class, 'show']);
     Route::get('faqs', [FaqController::class, 'index']);
@@ -29,6 +43,7 @@ Route::prefix('v1')->group(function () {
         Route::get('me/notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::put('me/notification-preferences', [NotificationPreferenceController::class, 'update']);
         Route::get('orders', [OrderController::class, 'index']);
+        Route::post('vouchers/{id}/redeem', [LoyaltyVoucherController::class, 'redeem']);
     });
 });
 

@@ -14,7 +14,6 @@ import 'core/providers/app_repository_providers.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/otp_page.dart';
 import 'features/auth/phone_login_page.dart';
-import 'features/auth/register_page.dart';
 import 'features/branches/branches_page.dart';
 import 'features/dashboard/dashboard_page.dart';
 import 'features/offers/offers_page.dart';
@@ -143,12 +142,8 @@ class _EuroMallAppState extends State<EuroMallApp> {
         GoRoute(
           path: '/auth/otp',
           name: 'otp',
-          builder: (context, state) => const OtpPage(),
-        ),
-        GoRoute(
-          path: '/auth/register',
-          name: 'register',
-          builder: (context, state) => const RegisterPage(),
+          builder: (context, state) =>
+              OtpPage(phone: state.extra as String? ?? ''),
         ),
         GoRoute(
           path: '/vouchers/:id',

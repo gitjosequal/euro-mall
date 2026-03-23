@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_client.dart';
 import '../../data/auth_token_store.dart';
 import '../../data/repositories/api_repositories.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../../data/repositories/loyalty_content_repository.dart';
 
 /// Registers API client and repositories for the subtree.
 class AppRepositoryProviders extends StatelessWidget {
@@ -51,6 +53,13 @@ class AppRepositoryProviders extends StatelessWidget {
         ),
         ProxyProvider<ApiClient, PointsSchemaRepository>(
           update: (context, client, previous) => PointsSchemaRepository(client),
+        ),
+        ProxyProvider<ApiClient, AuthRepository>(
+          update: (context, client, previous) => AuthRepository(client),
+        ),
+        ProxyProvider<ApiClient, LoyaltyContentRepository>(
+          update: (context, client, previous) =>
+              LoyaltyContentRepository(client),
         ),
       ],
       child: child,

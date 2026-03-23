@@ -1,39 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/localization/app_localizations.dart';
 import '../../core/models/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/ui_components.dart';
-import '../../data/mock_data.dart';
+import '../../data/repositories/loyalty_content_repository.dart';
 
-class VouchersPage extends StatelessWidget {
+class VouchersPage extends StatefulWidget {
   const VouchersPage({super.key});
+
+  @override
+  State<VouchersPage> createState() => _VouchersPageState();
+}
+
+class _VouchersPageState extends State<VouchersPage> {
+  Future<List<Voucher>>? _future;
+
+  Future<List<Voucher>> _load() {
+    final lc = Localizations.localeOf(context).languageCode;
+    return context.read<LoyaltyContentRepository>().fetchVouchers(lc);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _future ??= _load();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final dateFormat = DateFormat('dd MMM');
-    final vouchers = MockData.vouchers;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppPrimaryAppBar(title: l10n.tr('vouchers')),
-      body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-        itemBuilder: (context, index) {
-          final voucher = vouchers[index];
-          return _VoucherCard(
-            voucher: voucher,
-            dateFormat: dateFormat,
-            l10n: l10n,
-            onTap: () => context.go('/vouchers/${voucher.id}'),
+      body: FutureBuilder<List<Voucher>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(l10n.tr('load_error')),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () => setState(() => _future = _load()),
+                      child: Text(l10n.tr('retry')),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          final vouchers = snapshot.data ?? [];
+          if (vouchers.isEmpty) {
+            return Center(child: Text(l10n.tr('no_history')));
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+            itemBuilder: (context, index) {
+              final voucher = vouchers[index];
+              return _VoucherCard(
+                voucher: voucher,
+                dateFormat: dateFormat,
+                l10n: l10n,
+                onTap: () => context.go('/vouchers/${voucher.id}'),
+              );
+            },
+            separatorBuilder: (_, index) => const SizedBox(height: 14),
+            itemCount: vouchers.length,
           );
         },
-        separatorBuilder: (_, index) => const SizedBox(height: 14),
-        itemCount: vouchers.length,
       ),
     );
   }
@@ -124,6 +172,13 @@ class _VoucherCard extends StatelessWidget {
                           ),
                         ),
                         InfoPill(label: badgeLabel, color: badgeColor),
+                        if (voucher.isRedeemed) ...[
+                          const SizedBox(width: 6),
+                          InfoPill(
+                            label: l10n.tr('redeemed'),
+                            color: AppColors.textSecondary,
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 6),

@@ -2,9 +2,11 @@
 
 Laravel 13 REST API for the Euro Mall loyalty mobile app.
 
+- **Repository:** **https://github.com/gitjosequal/euromall_laravel.git**
+- **Mobile app:** **https://github.com/gitjosequal/euromall_flutter.git**
 - **Base URL:** `/api/v1` (e.g. `https://your-domain.com/api/v1`)
 - **Auth:** Laravel Sanctum (`Authorization: Bearer {token}`)
-- **Contract:** see [`../docs/API.md`](../docs/API.md)
+- **Contract:** `docs/API.md` (in this repo or product docs; describes `/api/v1` for the Flutter client)
 
 ## Local setup
 

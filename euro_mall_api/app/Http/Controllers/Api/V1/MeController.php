@@ -19,6 +19,10 @@ class MeController extends Controller
                 'gender' => $user->gender ?? 'other',
                 'dob' => $user->dob?->format('Y-m-d'),
                 'tier_name' => $user->tier_name,
+                'current_points' => (int) ($user->current_points ?? 0),
+                'next_tier_points' => (int) ($user->next_tier_points ?? 4000),
+                'tier_progress' => (float) ($user->tier_progress ?? 0),
+                'points_earned_today' => (int) ($user->points_earned_today ?? 0),
             ],
         ]);
     }

@@ -6,6 +6,9 @@ use App\Models\AppSetting;
 use App\Models\CmsPage;
 use App\Models\CustomerOrder;
 use App\Models\Faq;
+use App\Models\LoyaltyOffer;
+use App\Models\LoyaltyVoucher;
+use App\Models\MallBranch;
 use App\Models\NotificationPreference;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -77,17 +80,31 @@ class EuroMallSeeder extends Seeder
             ]
         );
 
+        $this->seedCatalog();
+
         $user = User::query()->firstOrCreate(
             ['email' => 'member@euromall.test'],
             [
                 'name' => 'Demo Member',
                 'password' => Hash::make('password'),
-                'phone' => '+962 79 000 0000',
+                'phone' => '+962790000000',
                 'gender' => 'female',
                 'dob' => '1995-04-12',
                 'tier_name' => 'Silver',
+                'current_points' => 2650,
+                'next_tier_points' => 4000,
+                'tier_progress' => 0.66,
+                'points_earned_today' => 120,
             ]
         );
+
+        $user->update([
+            'phone' => '+962790000000',
+            'current_points' => 2650,
+            'next_tier_points' => 4000,
+            'tier_progress' => 0.66,
+            'points_earned_today' => 120,
+        ]);
 
         NotificationPreference::query()->firstOrCreate(
             ['user_id' => $user->id],
@@ -107,12 +124,182 @@ class EuroMallSeeder extends Seeder
             ]
         );
 
+        CustomerOrder::query()->firstOrCreate(
+            [
+                'user_id' => $user->id,
+                'title' => 'Euro Mall — Abdoun',
+            ],
+            [
+                'ordered_at' => now()->subDays(1),
+                'amount' => 120.50,
+                'points' => 120,
+                'earned' => true,
+            ]
+        );
+
+        CustomerOrder::query()->firstOrCreate(
+            [
+                'user_id' => $user->id,
+                'title' => 'Voucher redemption',
+            ],
+            [
+                'ordered_at' => now()->subDays(3),
+                'amount' => -20,
+                'points' => -200,
+                'earned' => false,
+            ]
+        );
+
         $user->tokens()->delete();
         $token = $user->createToken('mobile-app')->plainTextToken;
 
         if ($this->command) {
-            $this->command->info('Demo user: member@euromall.test / password');
-            $this->command->info('Sanctum token (paste into app prefs for testing): '.$token);
+            $this->command->info('Demo user: member@euromall.test / password (web) or phone +962790000000 — POST auth/otp/send then verify with OTP from cache (fixed mode: '.config('euromall.otp_code').')');
+            $this->command->info('Sanctum token: '.$token);
         }
+    }
+
+    protected function seedCatalog(): void
+    {
+        LoyaltyVoucher::query()->updateOrCreate(
+            ['code' => 'FASH10'],
+            [
+                'title_en' => '10% off fashion',
+                'title_ar' => 'خصم 10٪ على الأزياء',
+                'description_en' => 'Valid on fashion & accessories.',
+                'description_ar' => 'صالح على الأزياء والإكسسوارات.',
+                'is_percentage' => true,
+                'value' => 10,
+                'expires_at' => now()->addDays(12),
+                'minimum_spend' => 25,
+                'is_active' => true,
+            ]
+        );
+
+        LoyaltyVoucher::query()->updateOrCreate(
+            ['code' => 'EAT15'],
+            [
+                'title_en' => 'JD 15 dining voucher',
+                'title_ar' => 'قسيمة مطاعم 15 دينار',
+                'description_en' => 'Redeem at any Euro Mall food outlet.',
+                'description_ar' => 'استبدل في أي مطعم في يورو مول.',
+                'is_percentage' => false,
+                'value' => 15,
+                'expires_at' => now()->addDays(3),
+                'minimum_spend' => 50,
+                'is_active' => true,
+            ]
+        );
+
+        LoyaltyVoucher::query()->updateOrCreate(
+            ['code' => 'COFFEEUP'],
+            [
+                'title_en' => 'Free coffee upgrade',
+                'title_ar' => 'ترقية قهوة مجانية',
+                'description_en' => 'Upgrade to any large size.',
+                'description_ar' => 'ترقية إلى أي حجم كبير.',
+                'is_percentage' => false,
+                'value' => 0,
+                'expires_at' => now()->subDay(),
+                'minimum_spend' => null,
+                'is_active' => true,
+            ]
+        );
+
+        LoyaltyOffer::query()->updateOrCreate(
+            ['title_en' => 'Double points weekend'],
+            [
+                'title_ar' => 'نقاط مضاعفة في نهاية الأسبوع',
+                'subtitle_en' => 'Earn 2x points on all stores this Friday & Saturday.',
+                'subtitle_ar' => 'اكسب ضعف النقاط الجمعة والسبت.',
+                'badge_en' => 'Limited',
+                'badge_ar' => 'محدود',
+                'image_url' => null,
+                'expires_at' => now()->addDays(2),
+                'sort_order' => 1,
+                'is_active' => true,
+            ]
+        );
+
+        LoyaltyOffer::query()->updateOrCreate(
+            ['title_en' => 'Beauty flash sale'],
+            [
+                'title_ar' => 'تخفيضات الجمال',
+                'subtitle_en' => 'Up to 30% off selected brands.',
+                'subtitle_ar' => 'حتى 30٪ على ماركات مختارة.',
+                'badge_en' => 'New',
+                'badge_ar' => 'جديد',
+                'image_url' => null,
+                'expires_at' => null,
+                'sort_order' => 2,
+                'is_active' => true,
+            ]
+        );
+
+        LoyaltyOffer::query()->updateOrCreate(
+            ['title_en' => 'Cinema & snacks bundle'],
+            [
+                'title_ar' => 'سينما + وجبات خفيفة',
+                'subtitle_en' => 'Save JD 5 on every ticket + snack combo.',
+                'subtitle_ar' => 'وفر 5 دنانير على التذكرة + الوجبة.',
+                'badge_en' => 'Bundle',
+                'badge_ar' => 'حزمة',
+                'image_url' => null,
+                'expires_at' => null,
+                'sort_order' => 3,
+                'is_active' => true,
+            ]
+        );
+
+        MallBranch::query()->updateOrCreate(
+            ['phone' => '+962 6 555 1111'],
+            [
+                'name_en' => 'Abdoun',
+                'name_ar' => 'عبدون',
+                'address_en' => 'Abdoun Circle, Amman',
+                'address_ar' => 'دوار عبدون، عمان',
+                'hours_en' => '10:00 - 22:00',
+                'hours_ar' => '10:00 - 22:00',
+                'latitude' => 31.9497,
+                'longitude' => 35.9327,
+                'open_now' => true,
+                'sort_order' => 1,
+                'is_active' => true,
+            ]
+        );
+
+        MallBranch::query()->updateOrCreate(
+            ['phone' => '+962 6 444 2222'],
+            [
+                'name_en' => 'Downtown',
+                'name_ar' => 'وسط البلد',
+                'address_en' => 'King Hussein Street, Amman',
+                'address_ar' => 'شارع الملك حسين، عمان',
+                'hours_en' => '09:00 - 23:00',
+                'hours_ar' => '09:00 - 23:00',
+                'latitude' => 31.9515,
+                'longitude' => 35.9396,
+                'open_now' => false,
+                'sort_order' => 2,
+                'is_active' => true,
+            ]
+        );
+
+        MallBranch::query()->updateOrCreate(
+            ['phone' => '+962 6 222 3333'],
+            [
+                'name_en' => 'Airport Road',
+                'name_ar' => 'طريق المطار',
+                'address_en' => 'Queen Alia Airport Road',
+                'address_ar' => 'طريق الملكة علياء الدولي',
+                'hours_en' => '24/7',
+                'hours_ar' => '24/7',
+                'latitude' => 31.9729,
+                'longitude' => 35.9916,
+                'open_now' => true,
+                'sort_order' => 3,
+                'is_active' => true,
+            ]
+        );
     }
 }

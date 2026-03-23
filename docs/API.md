@@ -1,6 +1,7 @@
 # Euro Mall API (mobile)
 
-Base URL: `{origin}/api/v1` (matches `AppEnvironment.apiBaseUrl` in the Flutter app).
+Base URL: `{origin}/api/v1` (matches `AppEnvironment.apiBaseUrl` in the Flutter app).  
+The Flutter `ApiClient` adds a trailing slash and strips leading slashes on paths so Dio resolves URLs correctly (e.g. `…/api/v1/app/config`).
 
 All JSON responses use UTF-8. Pass `locale=en` or `locale=ar` on endpoints that return localized strings.
 

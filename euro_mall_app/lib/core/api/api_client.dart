@@ -6,11 +6,16 @@ import 'api_exception.dart';
 import '../../data/auth_token_store.dart';
 
 /// HTTP client for Euro Mall API (`AppEnvironment.apiBaseUrl`).
+///
+/// Dio joins [baseUrl] with paths using [Uri.resolve]. Without a **trailing
+/// slash** on the base, relative paths can incorrectly drop the last segment
+/// (e.g. `/api/v1` + `app/config` → `/api/app/config`). Leading slashes on
+/// paths replace the whole path. We normalize both so requests hit `/api/v1/...`.
 class ApiClient {
   ApiClient({required AuthTokenStore auth}) : _auth = auth {
     _dio = Dio(
       BaseOptions(
-        baseUrl: AppEnvironment.apiBaseUrl,
+        baseUrl: _normalizeBaseUrl(AppEnvironment.apiBaseUrl),
         connectTimeout: const Duration(seconds: 20),
         receiveTimeout: const Duration(seconds: 30),
         headers: const {
@@ -44,13 +49,20 @@ class ApiClient {
   final AuthTokenStore _auth;
   late final Dio _dio;
 
+  static String _normalizeBaseUrl(String url) =>
+      url.endsWith('/') ? url : '$url/';
+
+  /// Relative path segments only (no leading `/`).
+  static String _relativePath(String path) =>
+      path.startsWith('/') ? path.substring(1) : path;
+
   Future<Map<String, dynamic>> getJson(
     String path, {
     Map<String, dynamic>? queryParameters,
   }) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>(
-        path,
+        _relativePath(path),
         queryParameters: queryParameters,
       );
       final data = res.data;
@@ -70,7 +82,7 @@ class ApiClient {
   }) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
-        path,
+        _relativePath(path),
         data: data,
         queryParameters: queryParameters,
       );
@@ -87,7 +99,7 @@ class ApiClient {
   }) async {
     try {
       final res = await _dio.put<Map<String, dynamic>>(
-        path,
+        _relativePath(path),
         data: data,
         queryParameters: queryParameters,
       );

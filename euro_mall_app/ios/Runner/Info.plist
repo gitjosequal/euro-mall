@@ -47,5 +47,12 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<!-- url_launcher: allow canLaunchUrl for tel / https (Contact page) -->
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>tel</string>
+			<string>https</string>
+			<string>http</string>
+		</array>
 	</dict>
 </plist>

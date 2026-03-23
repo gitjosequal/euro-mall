@@ -1,0 +1,158 @@
+import '../../core/api/api_client.dart';
+import '../../core/api/api_exception.dart';
+import '../api/api_models.dart';
+
+String _localeQuery(String localeCode) =>
+    localeCode == 'ar' ? 'ar' : 'en';
+
+class AppConfigRepository {
+  AppConfigRepository(this._client);
+
+  final ApiClient _client;
+
+  Future<AppRemoteConfig> fetchConfig() async {
+    final json = await _client.getJson('/app/config');
+    return AppRemoteConfig.fromJson(json);
+  }
+}
+
+class CmsRepository {
+  CmsRepository(this._client);
+
+  final ApiClient _client;
+
+  Future<CmsPageContent> fetchPage(String slug, String localeCode) async {
+    final json = await _client.getJson(
+      '/cms/pages/$slug',
+      queryParameters: {'locale': _localeQuery(localeCode)},
+    );
+    return CmsPageContent.fromJson(json);
+  }
+}
+
+class FaqRepository {
+  FaqRepository(this._client);
+
+  final ApiClient _client;
+
+  Future<List<FaqItem>> fetchFaqs(String localeCode) async {
+    final json = await _client.getJson(
+      '/faqs',
+      queryParameters: {'locale': _localeQuery(localeCode)},
+    );
+    final list = json['data'] as List<dynamic>? ?? [];
+    return list
+        .map((e) => FaqItem.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+}
+
+class ContactRepository {
+  ContactRepository(this._client);
+
+  final ApiClient _client;
+
+  Future<void> submit({
+    required String name,
+    required String email,
+    required String phone,
+    required String message,
+  }) async {
+    await _client.postJson(
+      '/contact',
+      data: {
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'message': message,
+      },
+    );
+  }
+}
+
+class UserRepository {
+  UserRepository(this._client);
+
+  final ApiClient _client;
+
+  /// Returns null if not authenticated (401).
+  Future<UserMe?> fetchMe() async {
+    try {
+      final json = await _client.getJson('/me');
+      return UserMe.fromJson(json);
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) return null;
+      rethrow;
+    }
+  }
+
+  Future<UserMe> updateMe({
+    required String name,
+    required String email,
+    required String gender,
+    DateTime? dob,
+  }) async {
+    final json = await _client.putJson(
+      '/me',
+      data: {
+        'name': name,
+        'email': email,
+        'gender': gender,
+        if (dob != null) 'dob': dob.toIso8601String().split('T').first,
+      },
+    );
+    return UserMe.fromJson(json);
+  }
+}
+
+class NotificationPreferencesRepository {
+  NotificationPreferencesRepository(this._client);
+
+  final ApiClient _client;
+
+  Future<NotificationPreferences> fetch(String localeCode) async {
+    final json = await _client.getJson(
+      '/me/notification-preferences',
+      queryParameters: {'locale': _localeQuery(localeCode)},
+    );
+    return NotificationPreferences.fromJson(json);
+  }
+
+  Future<NotificationPreferences> update(NotificationPreferences prefs) async {
+    final json = await _client.putJson(
+      '/me/notification-preferences',
+      data: prefs.toJson(),
+    );
+    return NotificationPreferences.fromJson(json);
+  }
+}
+
+class OrderHistoryRepository {
+  OrderHistoryRepository(this._client);
+
+  final ApiClient _client;
+
+  Future<List<OrderHistoryItem>> fetchOrders() async {
+    final json = await _client.getJson('/orders');
+    final list = json['data'] as List<dynamic>? ?? [];
+    return list
+        .map(
+          (e) => OrderHistoryItem.fromJson(Map<String, dynamic>.from(e as Map)),
+        )
+        .toList();
+  }
+}
+
+class PointsSchemaRepository {
+  PointsSchemaRepository(this._client);
+
+  final ApiClient _client;
+
+  Future<PointsSchemaContent> fetchSchema(String localeCode) async {
+    final json = await _client.getJson(
+      '/points/schema',
+      queryParameters: {'locale': _localeQuery(localeCode)},
+    );
+    return PointsSchemaContent.fromJson(json);
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "903436642525",
+    "project_id": "euromall-74831",
+    "storage_bucket": "euromall-74831.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:903436642525:android:7582249f33c2394942d334",
+        "android_client_info": {
+          "package_name": "com.josequal.euromall"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGxu4mqrs6isIodyYyYbOxWcyVBois6gw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

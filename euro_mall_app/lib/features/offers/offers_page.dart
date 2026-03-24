@@ -76,7 +76,7 @@ class _OffersPageState extends State<OffersPage> {
           }
           final offers = snapshot.data ?? [];
           if (offers.isEmpty) {
-            return Center(child: Text(l10n.tr('no_history')));
+            return Center(child: Text(l10n.tr('no_offers')));
           }
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -180,7 +180,7 @@ class _OfferCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: FilledButton(
-                      onPressed: () {},
+                      onPressed: () => context.go('/vouchers'),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(

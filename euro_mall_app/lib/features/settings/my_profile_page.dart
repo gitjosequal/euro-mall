@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/api/api_exception.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_scaffold.dart';
@@ -109,8 +110,9 @@ class _EditableProfileFormState extends State<_EditableProfileForm> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
+    final repo = context.read<UserRepository>();
     try {
-      await context.read<UserRepository>().updateMe(
+      await repo.updateMe(
             name: _nameCtrl.text.trim(),
             email: _emailCtrl.text.trim(),
             gender: _gender,
@@ -122,6 +124,17 @@ class _EditableProfileFormState extends State<_EditableProfileForm> {
             content: Text(AppLocalizations.of(context).tr('save_changes')),
           ),
         );
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        if (e.statusCode == 401) {
+          context.push('/auth/phone');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.message.isNotEmpty ? e.message : l10n.tr('load_error'))),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _saving = false);

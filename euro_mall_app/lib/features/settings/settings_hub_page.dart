@@ -38,7 +38,7 @@ class _SettingsHubPageState extends State<SettingsHubPage> {
 
   Future<void> _logout() async {
     await context.read<AuthTokenStore>().setToken(null);
-    if (mounted) _reloadUser();
+    if (mounted) context.go('/auth/phone');
   }
 
   Future<void> _launchUrl(String? url) async {

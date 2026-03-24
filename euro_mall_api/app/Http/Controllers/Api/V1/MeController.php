@@ -31,7 +31,7 @@ class MeController extends Controller
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|max:255',
+            'email' => 'sometimes|email|max:255|unique:users,email,'.$request->user()->id,
             'gender' => 'sometimes|in:male,female,other',
             'dob' => 'sometimes|nullable|date',
         ]);

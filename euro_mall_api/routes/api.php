@@ -22,8 +22,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->group(function () {
-    Route::post('auth/otp/send', [AuthOtpController::class, 'send']);
-    Route::post('auth/otp/verify', [AuthOtpController::class, 'verify']);
+    Route::post('auth/otp/send', [AuthOtpController::class, 'send'])
+        ->middleware('throttle:5,1');
+    Route::post('auth/otp/verify', [AuthOtpController::class, 'verify'])
+        ->middleware('throttle:10,1');
 
     Route::get('home/dashboard', [HomeController::class, 'dashboard']);
     Route::get('vouchers', [LoyaltyVoucherController::class, 'index']);

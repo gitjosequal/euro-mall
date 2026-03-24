@@ -7,6 +7,9 @@ use App\Models\CmsPage;
 use App\Models\CustomerOrder;
 use App\Models\Faq;
 use App\Models\LoyaltyOffer;
+use App\Models\LoyaltyPointRule;
+use App\Models\LoyaltyRedemptionRule;
+use App\Models\LoyaltyTier;
 use App\Models\LoyaltyVoucher;
 use App\Models\MallBranch;
 use App\Models\NotificationPreference;
@@ -81,6 +84,7 @@ class EuroMallSeeder extends Seeder
         );
 
         $this->seedCatalog();
+        $this->seedRules();
 
         $user = User::query()->firstOrCreate(
             ['email' => 'member@euromall.test'],
@@ -298,6 +302,42 @@ class EuroMallSeeder extends Seeder
                 'longitude' => 35.9916,
                 'open_now' => true,
                 'sort_order' => 3,
+                'is_active' => true,
+            ]
+        );
+    }
+
+    protected function seedRules(): void
+    {
+        LoyaltyTier::query()->updateOrCreate(
+            ['name' => 'Silver'],
+            ['min_points' => 0, 'max_points' => 3999, 'sort_order' => 1, 'is_active' => true]
+        );
+        LoyaltyTier::query()->updateOrCreate(
+            ['name' => 'Gold'],
+            ['min_points' => 4000, 'max_points' => 9999, 'sort_order' => 2, 'is_active' => true]
+        );
+        LoyaltyTier::query()->updateOrCreate(
+            ['name' => 'Platinum'],
+            ['min_points' => 10000, 'max_points' => null, 'sort_order' => 3, 'is_active' => true]
+        );
+
+        LoyaltyPointRule::query()->updateOrCreate(
+            ['name' => 'Default earn rule'],
+            [
+                'amount_per_point' => 1,
+                'points_per_unit' => 1,
+                'max_points_per_transaction' => null,
+                'is_active' => true,
+            ]
+        );
+
+        LoyaltyRedemptionRule::query()->updateOrCreate(
+            ['name' => 'Default redemption'],
+            [
+                'points_required' => 100,
+                'value_amount' => 1,
+                'is_percentage' => false,
                 'is_active' => true,
             ]
         );

@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/config/app_environment.dart';
@@ -11,6 +13,7 @@ import 'core/localization/app_localizations.dart';
 import 'core/localization/app_locale.dart';
 import 'core/navigation/app_shell.dart';
 import 'core/providers/app_repository_providers.dart';
+import 'core/notifications/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/otp_page.dart';
 import 'features/auth/phone_login_page.dart';
@@ -30,11 +33,17 @@ import 'features/vouchers/vouchers_page.dart';
 import 'features/wallet/points_history_page.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/splash/splash_page.dart';
+import 'data/repositories/api_repositories.dart';
 
 const _prefLocaleKey = 'app_locale';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {
+    // Firebase setup can be added later per environment.
+  }
 
   if (kDebugMode) {
     debugPrint('[Euro Mall] API base: ${AppEnvironment.apiBaseUrl}');
@@ -259,26 +268,61 @@ class _EuroMallAppState extends State<EuroMallApp> {
       prefs: widget.prefs,
       child: AppStateScope(
         notifier: _appState,
-        child: AnimatedBuilder(
-          animation: _appState,
-          builder: (context, _) {
-            return MaterialApp.router(
-              title: 'Euro Mall Loyalty',
-              debugShowCheckedModeBanner: false,
-              theme: AppTheme.light(_appState.locale),
-              locale: _appState.locale,
-              supportedLocales: AppLocalizations.supportedLocales,
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-              ],
-              routerConfig: _router,
-            );
-          },
+        child: NotificationBootstrap(
+          child: AnimatedBuilder(
+            animation: _appState,
+            builder: (context, _) {
+              return MaterialApp.router(
+                title: 'Euro Mall Loyalty',
+                debugShowCheckedModeBanner: false,
+                theme: AppTheme.light(_appState.locale),
+                locale: _appState.locale,
+                supportedLocales: AppLocalizations.supportedLocales,
+                localizationsDelegates: const [
+                  AppLocalizations.delegate,
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                ],
+                routerConfig: _router,
+              );
+            },
+          ),
         ),
       ),
+    );
+  }
+}
+
+class NotificationBootstrap extends StatefulWidget {
+  const NotificationBootstrap({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<NotificationBootstrap> createState() => _NotificationBootstrapState();
+}
+
+class _NotificationBootstrapState extends State<NotificationBootstrap> {
+  bool _didInit = false;
+  NotificationService? _service;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInit) return;
+    _didInit = true;
+    final repo = context.read<DeviceTokenRepository>();
+    _service = NotificationService(repo);
+    _service!.initialize();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_service == null) return widget.child;
+    return Provider<NotificationService>.value(
+      value: _service!,
+      child: widget.child,
     );
   }
 }

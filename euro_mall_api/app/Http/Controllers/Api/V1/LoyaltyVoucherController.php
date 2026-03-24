@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesSanctumUser;
 use App\Http\Controllers\Controller;
+use App\Models\LoyaltyRedemptionRule;
 use App\Models\LoyaltyVoucher;
 use App\Models\LoyaltyVoucherRedemption;
 use App\Models\User;
+use App\Services\PointsEngineService;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 
@@ -57,7 +59,7 @@ class LoyaltyVoucherController extends Controller
     /**
      * Record a one-time redemption for the authenticated member.
      */
-    public function redeem(Request $request, string $id)
+    public function redeem(Request $request, string $id, PointsEngineService $engine)
     {
         $v = LoyaltyVoucher::query()->where('is_active', true)->findOrFail($id);
 
@@ -77,6 +79,28 @@ class LoyaltyVoucherController extends Controller
             return response()->json([
                 'message' => 'You have already redeemed this voucher',
             ], 409);
+        }
+
+        $rule = LoyaltyRedemptionRule::query()->where('is_active', true)->first();
+        if ($rule && (int) $rule->points_required > 0) {
+            $pointsCost = (int) $rule->points_required;
+            if ((int) $user->current_points < $pointsCost) {
+                return response()->json([
+                    'message' => 'Insufficient points to redeem this voucher',
+                ], 422);
+            }
+
+            try {
+                $engine->redeemPoints(
+                    $user,
+                    $pointsCost,
+                    'voucher_redemption',
+                    (string) $v->id,
+                    ['voucher_code' => $v->code]
+                );
+            } catch (\DomainException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
         }
 
         LoyaltyVoucherRedemption::query()->create([

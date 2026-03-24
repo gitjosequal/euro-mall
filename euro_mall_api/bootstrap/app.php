@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(function ($request) {
             return $request->is('api/*') ? null : '/login';
         });
+        $middleware->alias([
+            'pos.oauth' => \App\Http\Middleware\EnsurePosOAuthToken::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthenticationException $e, Request $request) {

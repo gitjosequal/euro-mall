@@ -61,6 +61,9 @@ class AppRepositoryProviders extends StatelessWidget {
           update: (context, client, previous) =>
               LoyaltyContentRepository(client),
         ),
+        ProxyProvider<ApiClient, DeviceTokenRepository>(
+          update: (context, client, previous) => DeviceTokenRepository(client),
+        ),
       ],
       child: child,
     );

@@ -74,7 +74,7 @@ class AuthOtpController extends Controller
             ], 422);
         }
 
-        $email = strtolower(hash('crc32b', $phone)).'@m.euromall.app';
+        $email = substr(hash('sha256', $phone), 0, 16).'@m.euromall.app';
 
         $user = User::query()->firstOrCreate(
             ['phone' => $phone],

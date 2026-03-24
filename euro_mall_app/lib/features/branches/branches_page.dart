@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/localization/app_localizations.dart';
@@ -135,28 +136,43 @@ class _MapPreview extends StatelessWidget {
           height: 170,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            gradient: const LinearGradient(
-              colors: [Color(0xFFF8F9FB), Color(0xFFEFF4FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
             border: Border.all(color: AppColors.divider),
           ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
               children: [
-                const Icon(Icons.map_rounded, size: 48, color: AppColors.primary),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.tr('map_view'),
-                  style: Theme.of(context).textTheme.titleMedium,
+                GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(latitude, longitude),
+                    zoom: 11,
+                  ),
+                  markers: {
+                    Marker(
+                      markerId: const MarkerId('center'),
+                      position: LatLng(latitude, longitude),
+                    ),
+                  },
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  onTap: (_) => _open(context),
                 ),
-                Text(
-                  l10n.tr('tap_to_open_maps'),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                Positioned(
+                  left: 10,
+                  top: 10,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      child: Text(
+                        l10n.tr('tap_to_open_maps'),
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
+                    ),
+                  ),
                 ),
               ],
             ),

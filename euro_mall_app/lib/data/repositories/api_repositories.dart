@@ -156,3 +156,29 @@ class PointsSchemaRepository {
     return PointsSchemaContent.fromJson(json);
   }
 }
+
+class DeviceTokenRepository {
+  DeviceTokenRepository(this._client);
+
+  final ApiClient _client;
+
+  Future<void> register({
+    required String fcmToken,
+    required String platform,
+  }) async {
+    await _client.postJson(
+      '/devices/token',
+      data: {
+        'fcm_token': fcmToken,
+        'platform': platform,
+      },
+    );
+  }
+
+  Future<void> unregister(String fcmToken) async {
+    await _client.deleteJson(
+      '/devices/token',
+      data: {'fcm_token': fcmToken},
+    );
+  }
+}

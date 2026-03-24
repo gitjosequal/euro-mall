@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:barcode_widget/barcode_widget.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -248,6 +249,14 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
                             letterSpacing: 2,
                             fontWeight: FontWeight.w700,
                           ),
+                        ),
+                        const SizedBox(height: 10),
+                        BarcodeWidget(
+                          barcode: Barcode.code128(),
+                          data: voucher.code,
+                          width: 180,
+                          height: 50,
+                          drawText: false,
                         ),
                         const SizedBox(height: 6),
                         Text(

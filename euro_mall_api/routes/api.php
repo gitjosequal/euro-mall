@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AppConfigController;
 use App\Http\Controllers\Api\V1\AuthOtpController;
 use App\Http\Controllers\Api\V1\CmsPageController;
 use App\Http\Controllers\Api\V1\ContactController;
+use App\Http\Controllers\Api\V1\DeviceTokenController;
 use App\Http\Controllers\Api\V1\FaqController;
 use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\LoyaltyOfferController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotificationPreferenceController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PointsSchemaController;
+use App\Http\Controllers\Api\V1\PosWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -46,7 +48,17 @@ Route::prefix('v1')->group(function () {
         Route::put('me/notification-preferences', [NotificationPreferenceController::class, 'update']);
         Route::get('orders', [OrderController::class, 'index']);
         Route::post('vouchers/{id}/redeem', [LoyaltyVoucherController::class, 'redeem']);
+        Route::post('devices/token', [DeviceTokenController::class, 'store']);
+        Route::delete('devices/token', [DeviceTokenController::class, 'destroy']);
     });
+
+    Route::prefix('pos')
+        ->group(function () {
+            Route::post('invoices', [PosWebhookController::class, 'ingestInvoice'])
+                ->middleware('pos.oauth:pos.write_invoices');
+            Route::post('vouchers/validate', [PosWebhookController::class, 'validateVoucher'])
+                ->middleware('pos.oauth:pos.validate_voucher');
+        });
 });
 
 Route::get('/user', function (Request $request) {

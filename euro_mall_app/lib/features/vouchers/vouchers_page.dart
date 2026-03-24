@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/localization/app_localizations.dart';
 import '../../core/models/models.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/ui_components.dart';
@@ -19,6 +20,7 @@ class VouchersPage extends StatefulWidget {
 
 class _VouchersPageState extends State<VouchersPage> {
   Future<List<Voucher>>? _future;
+  bool _sentExpiryReminder = false;
 
   Future<List<Voucher>> _load() {
     final lc = Localizations.localeOf(context).languageCode;
@@ -64,6 +66,21 @@ class _VouchersPageState extends State<VouchersPage> {
             );
           }
           final vouchers = snapshot.data ?? [];
+          if (!_sentExpiryReminder) {
+            final soon = vouchers.where((v) => v.status == VoucherStatus.soon).length;
+            if (soon > 0) {
+              _sentExpiryReminder = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                final svc = context.read<NotificationService>();
+                final l = AppLocalizations.of(context);
+                svc.showExpiryReminder(
+                  title: l.tr('vouchers'),
+                  body: '$soon ${l.tr('soon_expiring')}',
+                );
+              });
+            }
+          }
           if (vouchers.isEmpty) {
             return Center(child: Text(l10n.tr('no_history')));
           }

@@ -191,6 +191,25 @@ Body: `name`, `email`, `gender`, optional `dob` (`Y-m-d`).
 }
 ```
 
+### `POST /devices/token`
+
+Registers/refreshes current device push token.
+
+```json
+{
+  "fcm_token": "fcm-device-token",
+  "platform": "android|ios|web"
+}
+```
+
+### `DELETE /devices/token`
+
+```json
+{
+  "fcm_token": "fcm-device-token"
+}
+```
+
 After OTP verification, the app persists the token:
 
 ```dart
@@ -198,6 +217,48 @@ await context.read<AuthTokenStore>().setToken(plainTextToken);
 ```
 
 **Production:** set `AUTH_OTP_USE_FIXED=false`, `AUTH_OTP_FALLBACK_FIXED=false`, send real SMS from `otp/send`, and stop logging OTP values.
+
+## POS Integration (OAuth2 Client Credentials)
+
+Use Passport token endpoint:
+
+- `POST /oauth/token`
+- `grant_type=client_credentials`
+- `client_id={POS_CLIENT_ID}`
+- `client_secret={POS_CLIENT_SECRET}`
+- `scope=pos.write_invoices pos.validate_voucher`
+
+Use returned bearer token against:
+
+### `POST /pos/invoices` (scope: `pos.write_invoices`)
+
+```json
+{
+  "branch_code": "ABDOUN",
+  "customer_phone": "+962790000000",
+  "transaction_amount": 52.75,
+  "pos_transaction_id": "INV-2026-1001",
+  "transaction_date": "2026-02-09T11:12:00Z",
+  "item_details": [{ "sku": "A1", "qty": 1, "price": 52.75 }]
+}
+```
+
+- Idempotent on `pos_transaction_id` (duplicate requests return `status=duplicate`).
+- Creates customer on first POS purchase if phone is new.
+- Applies points engine and writes loyalty ledger entry atomically.
+
+### `POST /pos/vouchers/validate` (scope: `pos.validate_voucher`)
+
+```json
+{
+  "voucher_code": "WELCOME10",
+  "customer_phone": "+962790000000",
+  "consume": true
+}
+```
+
+- Validates voucher status/expiry and prior usage.
+- With `consume=true`, records redemption for that customer.
 
 ## Admin / CMS
 

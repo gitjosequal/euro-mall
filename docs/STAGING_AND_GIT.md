@@ -67,3 +67,12 @@ Full contract: **`docs/API.md`** (keep a copy in the Laravel repo alongside the 
 ## Deploy backend to staging
 
 On the server: pull **euromall_laravel**, set `.env`, run `composer install --no-dev`, `php artisan migrate --force`, cache config.
+
+Recommended production services (Hetzner target):
+
+- Nginx with SSL (Let's Encrypt), PHP-FPM 8.3+, MySQL 8+, Redis.
+- Queue worker: `php artisan queue:work --tries=3 --timeout=90`.
+- Scheduler (cron): `* * * * * php /var/www/euromall_laravel/artisan schedule:run >> /dev/null 2>&1`.
+- Cache warmup: `php artisan config:cache && php artisan route:cache && php artisan view:cache`.
+- Passport keys present and secure (`storage/oauth-*.key`).
+- OTP dev mode only on staging (`AUTH_OTP_CODE=1111`, fixed enabled); disable fixed OTP on production cutover.

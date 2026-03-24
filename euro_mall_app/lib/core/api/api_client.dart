@@ -109,6 +109,23 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> deleteJson(
+    String path, {
+    Map<String, dynamic>? data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final res = await _dio.delete<Map<String, dynamic>>(
+        _relativePath(path),
+        data: data,
+        queryParameters: queryParameters,
+      );
+      return res.data ?? <String, dynamic>{};
+    } on DioException catch (e) {
+      throw _mapDio(e);
+    }
+  }
+
   ApiException _mapDio(DioException e) {
     final code = e.response?.statusCode;
     final data = e.response?.data;

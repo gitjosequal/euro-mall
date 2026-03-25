@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/api/api_user_message.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_scaffold.dart';
@@ -49,13 +50,35 @@ class _CmsMarkdownPageState extends State<CmsMarkdownPage> {
           }
           if (snapshot.hasError) {
             return SettingsRetryBody(
-              message: l10n.tr('load_error'),
+              message: apiErrorUserMessage(l10n, snapshot.error),
               onRetry: () => setState(() => _ensureFuture(force: true)),
             );
           }
           final page = snapshot.data!;
           if (page.bodyMarkdown.isEmpty) {
-            return Center(child: Text(l10n.tr('no_content')));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      l10n.tr('no_content'),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.tr('empty_cms_hint'),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
           return Markdown(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),

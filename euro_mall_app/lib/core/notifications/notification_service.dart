@@ -40,6 +40,16 @@ class NotificationService {
     });
   }
 
+  /// Call after login so the backend stores FCM under the authenticated member.
+  Future<void> syncRegisteredTokenToBackend() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        await _registerToken(token);
+      }
+    } catch (_) {}
+  }
+
   Future<void> showExpiryReminder({
     required String title,
     required String body,

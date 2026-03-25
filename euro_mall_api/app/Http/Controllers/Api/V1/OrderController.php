@@ -3,29 +3,28 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\CustomerOrder;
+use App\Models\AppSetting;
+use App\Services\MemberActivityFeedService;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Full points & order activity (loyalty ledger + customer orders).
+     */
+    public function index(Request $request, MemberActivityFeedService $activity)
     {
-        $orders = CustomerOrder::query()
-            ->where('user_id', $request->user()->id)
-            ->orderByDesc('ordered_at')
-            ->get();
+        $locale = $request->get('locale', 'en') === 'ar' ? 'ar' : 'en';
+        $user = $request->user();
+        $items = $activity->itemsForUser($user, $locale);
+        $settings = AppSetting::query()->first();
 
         return response()->json([
-            'data' => $orders->map(function (CustomerOrder $o) {
-                return [
-                    'id' => (string) $o->id,
-                    'title' => $o->title,
-                    'date' => $o->ordered_at->toIso8601String(),
-                    'amount' => (float) $o->amount,
-                    'points' => (int) $o->points,
-                    'earned' => (bool) $o->earned,
-                ];
-            })->values(),
+            'data' => $items,
+            'meta' => [
+                'currency_symbol' => $settings?->currency_symbol ?? 'JD',
+                'currency_code' => $settings?->currency_code ?? 'JOD',
+            ],
         ]);
     }
 }

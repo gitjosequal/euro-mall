@@ -19,16 +19,24 @@ class PointsHistoryPage extends StatefulWidget {
 }
 
 class _PointsHistoryPageState extends State<PointsHistoryPage> {
-  Future<List<OrderHistoryItem>>? _future;
+  Future<MemberActivityResult>? _future;
 
-  Future<List<OrderHistoryItem>> _load() {
-    return context.read<OrderHistoryRepository>().fetchOrders();
+  Future<MemberActivityResult> _load() {
+    final lc = Localizations.localeOf(context).languageCode;
+    return context.read<OrderHistoryRepository>().fetchMemberActivity(lc);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _future ??= _load();
+  }
+
+  Future<void> _pullRefresh() async {
+    setState(() {
+      _future = _load();
+    });
+    await _future;
   }
 
   static WalletTransaction _toWallet(OrderHistoryItem o) {
@@ -45,15 +53,10 @@ class _PointsHistoryPageState extends State<PointsHistoryPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final currencyFormat = NumberFormat.currency(
-      symbol: 'JD ',
-      decimalDigits: 2,
-    );
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppPrimaryAppBar(title: l10n.tr('points_history')),
-      body: FutureBuilder<List<OrderHistoryItem>>(
+      body: FutureBuilder<MemberActivityResult>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -99,22 +102,33 @@ class _PointsHistoryPageState extends State<PointsHistoryPage> {
               ),
             );
           }
-          final items = snapshot.data ?? [];
+          final bundle = snapshot.data!;
+          final items = bundle.items;
           if (items.isEmpty) {
             return Center(child: Text(l10n.tr('no_history')));
           }
+          final currencyFormat = NumberFormat.currency(
+            name: bundle.currencyCode,
+            symbol: '${bundle.currencySymbol} ',
+            decimalDigits: 2,
+          );
           final transactions = items.map(_toWallet).toList();
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-            itemBuilder: (context, index) {
-              final txn = transactions[index];
-              return _HistoryTile(
-                transaction: txn,
-                currencyFormat: currencyFormat,
-              );
-            },
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemCount: transactions.length,
+          return RefreshIndicator(
+            onRefresh: _pullRefresh,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+              itemBuilder: (context, index) {
+                final txn = transactions[index];
+                return _HistoryTile(
+                  transaction: txn,
+                  currencyFormat: currencyFormat,
+                  l10n: l10n,
+                );
+              },
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemCount: transactions.length,
+            ),
           );
         },
       ),
@@ -126,16 +140,19 @@ class _HistoryTile extends StatelessWidget {
   const _HistoryTile({
     required this.transaction,
     required this.currencyFormat,
+    required this.l10n,
   });
 
   final WalletTransaction transaction;
   final NumberFormat currencyFormat;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEarned = transaction.earned;
-    final pointsLabel = '${isEarned ? '+' : ''}${transaction.points} pts';
+    final pointsLabel =
+        '${isEarned ? '+' : '-'}${transaction.points} ${l10n.tr('points_unit')}';
     final dateLabel = DateFormat(
       'dd MMM yyyy, h:mm a',
     ).format(transaction.date);

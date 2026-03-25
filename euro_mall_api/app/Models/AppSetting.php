@@ -12,12 +12,16 @@ class AppSetting extends Model
         'developer_url',
         'display_version',
         'social_links',
+        'currency_symbol',
+        'currency_code',
+        'onboarding_slides',
     ];
 
     protected function casts(): array
     {
         return [
             'social_links' => 'array',
+            'onboarding_slides' => 'array',
         ];
     }
 }

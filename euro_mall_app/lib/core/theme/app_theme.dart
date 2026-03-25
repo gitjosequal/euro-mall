@@ -38,11 +38,12 @@ class AppTheme {
       ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: AppColors.surface,
+        // Match scaffold canvas so shell headers blend with tab content (no white strip).
+        backgroundColor: AppColors.background,
         elevation: 0,
-        scrolledUnderElevation: 0.5,
-        shadowColor: Colors.black.withValues(alpha: 0.06),
-        surfaceTintColor: AppColors.surface,
+        scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
         titleTextStyle: displayFont.titleLarge?.copyWith(
           fontWeight: FontWeight.w800,
@@ -50,7 +51,7 @@ class AppTheme {
           letterSpacing: -0.35,
         ),
         systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarColor: AppColors.surface,
+          statusBarColor: AppColors.background,
           statusBarIconBrightness: Brightness.dark,
           statusBarBrightness: Brightness.light,
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/api/api_user_message.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_scaffold.dart';
@@ -41,7 +42,7 @@ class _FaqsPageState extends State<FaqsPage> {
           }
           if (snapshot.hasError) {
             return SettingsRetryBody(
-              message: l10n.tr('load_error'),
+              message: apiErrorUserMessage(l10n, snapshot.error),
               onRetry: () => setState(() => _ensureFuture(force: true)),
             );
           }

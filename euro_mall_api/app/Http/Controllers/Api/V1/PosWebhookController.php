@@ -8,6 +8,7 @@ use App\Models\LoyaltyVoucherRedemption;
 use App\Models\PosInvoice;
 use App\Models\User;
 use App\Services\PointsEngineService;
+use App\Services\VoucherRedemptionService;
 use Illuminate\Http\Request;
 
 class PosWebhookController extends Controller
@@ -87,7 +88,7 @@ class PosWebhookController extends Controller
         ], 201);
     }
 
-    public function validateVoucher(Request $request)
+    public function validateVoucher(Request $request, VoucherRedemptionService $redemptions)
     {
         $data = $request->validate([
             'voucher_code' => 'required|string|max:64',
@@ -110,6 +111,10 @@ class PosWebhookController extends Controller
             return response()->json(['message' => 'Voucher not found'], 404);
         }
 
+        if (! $voucher->isVisibleTo($user)) {
+            return response()->json(['message' => 'Voucher not available for this customer'], 403);
+        }
+
         if ($voucher->expires_at->isPast()) {
             return response()->json(['message' => 'Voucher expired'], 422);
         }
@@ -124,16 +129,24 @@ class PosWebhookController extends Controller
 
         $consume = (bool) ($data['consume'] ?? false);
         if ($consume) {
-            LoyaltyVoucherRedemption::query()->create([
-                'user_id' => $user->id,
-                'loyalty_voucher_id' => $voucher->id,
-            ]);
+            try {
+                $redemptions->redeemForUser($user, $voucher, ['channel' => 'pos']);
+            } catch (\InvalidArgumentException) {
+                return response()->json(['message' => 'Voucher expired'], 422);
+            } catch (\RuntimeException) {
+                return response()->json(['message' => 'Voucher already redeemed'], 409);
+            } catch (\DomainException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
         }
+
+        $user->refresh();
 
         return response()->json([
             'data' => [
                 'valid' => true,
                 'consumed' => $consume,
+                'points_balance' => (int) $user->current_points,
                 'voucher' => [
                     'id' => (string) $voucher->id,
                     'code' => $voucher->code,

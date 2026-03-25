@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../data/auth_token_store.dart';
 import '../../data/repositories/auth_repository.dart';
 
@@ -57,6 +58,10 @@ class _OtpPageState extends State<OtpPage> {
             code: code,
           );
       await tokenStore.setToken(token);
+      if (!mounted) return;
+      try {
+        await context.read<NotificationService>().syncRegisteredTokenToBackend();
+      } catch (_) {}
       if (!mounted) return;
       context.go('/dashboard');
     } on ApiException catch (e) {

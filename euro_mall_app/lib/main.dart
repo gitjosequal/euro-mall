@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:country_picker/country_picker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -280,6 +281,7 @@ class _EuroMallAppState extends State<EuroMallApp> {
                 supportedLocales: AppLocalizations.supportedLocales,
                 localizationsDelegates: const [
                   AppLocalizations.delegate,
+                  CountryLocalizations.delegate,
                   GlobalMaterialLocalizations.delegate,
                   GlobalCupertinoLocalizations.delegate,
                   GlobalWidgetsLocalizations.delegate,

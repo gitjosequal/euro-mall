@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class MallBranch extends Model
 {
     protected $fillable = [
-        'name_en', 'name_ar', 'address_en', 'address_ar', 'phone',
+        'name_en', 'name_ar', 'address_en', 'address_ar', 'phone', 'pos_branch_code',
         'hours_en', 'hours_ar', 'latitude', 'longitude', 'open_now', 'sort_order', 'is_active',
     ];
 

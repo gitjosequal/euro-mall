@@ -20,21 +20,33 @@ class SettingsOrderHistoryPage extends StatefulWidget {
 }
 
 class _SettingsOrderHistoryPageState extends State<SettingsOrderHistoryPage> {
-  late Future<List<OrderHistoryItem>> _future;
+  late Future<MemberActivityResult> _future;
   bool _deps = false;
+
+  Future<MemberActivityResult> _load() {
+    final lc = Localizations.localeOf(context).languageCode;
+    return context.read<OrderHistoryRepository>().fetchMemberActivity(lc);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_deps) return;
     _deps = true;
-    _future = context.read<OrderHistoryRepository>().fetchOrders();
+    _future = _load();
   }
 
   void _retry() {
     setState(() {
-      _future = context.read<OrderHistoryRepository>().fetchOrders();
+      _future = _load();
     });
+  }
+
+  Future<void> _pullRefresh() async {
+    setState(() {
+      _future = _load();
+    });
+    await _future;
   }
 
   @override
@@ -43,7 +55,7 @@ class _SettingsOrderHistoryPageState extends State<SettingsOrderHistoryPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppPrimaryAppBar(title: l10n.tr('settings_order_history')),
-      body: FutureBuilder<List<OrderHistoryItem>>(
+      body: FutureBuilder<MemberActivityResult>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -61,24 +73,31 @@ class _SettingsOrderHistoryPageState extends State<SettingsOrderHistoryPage> {
               onRetry: _retry,
             );
           }
-          final list = snapshot.data ?? [];
+          final bundle = snapshot.data!;
+          final list = bundle.items;
           if (list.isEmpty) {
             return Center(child: Text(l10n.tr('orders_empty')));
           }
           final currencyFormat = NumberFormat.currency(
-            symbol: 'JD ',
+            name: bundle.currencyCode,
+            symbol: '${bundle.currencySymbol} ',
             decimalDigits: 2,
           );
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-            itemCount: list.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              return _OrderTile(
-                item: list[index],
-                currencyFormat: currencyFormat,
-              );
-            },
+          return RefreshIndicator(
+            onRefresh: _pullRefresh,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+              itemCount: list.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                return _OrderTile(
+                  item: list[index],
+                  currencyFormat: currencyFormat,
+                  l10n: l10n,
+                );
+              },
+            ),
           );
         },
       ),
@@ -120,16 +139,19 @@ class _OrderTile extends StatelessWidget {
   const _OrderTile({
     required this.item,
     required this.currencyFormat,
+    required this.l10n,
   });
 
   final OrderHistoryItem item;
   final NumberFormat currencyFormat;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEarned = item.earned;
-    final pointsLabel = '${isEarned ? '+' : ''}${item.points} pts';
+    final pointsLabel =
+        '${isEarned ? '+' : '-'}${item.points} ${l10n.tr('points_unit')}';
     final dateLabel = DateFormat('dd MMM yyyy, h:mm a').format(item.date);
 
     return Material(

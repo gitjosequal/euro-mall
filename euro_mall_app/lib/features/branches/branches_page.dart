@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/api/api_user_message.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/maps/open_maps.dart';
 import '../../core/models/models.dart';
@@ -46,6 +47,11 @@ class _BranchesPageState extends State<BranchesPage> {
     _future ??= _load();
   }
 
+  Future<void> _pullRefresh() async {
+    setState(() => _future = _load());
+    await _future;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -66,7 +72,10 @@ class _BranchesPageState extends State<BranchesPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(l10n.tr('load_error')),
+                    Text(
+                      apiErrorUserMessage(l10n, snapshot.error),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: () => setState(() => _future = _load()),
@@ -79,25 +88,29 @@ class _BranchesPageState extends State<BranchesPage> {
           }
           final branches = snapshot.data ?? [];
           if (branches.isEmpty) {
-            return Center(child: Text(l10n.tr('no_history')));
+            return Center(child: Text(l10n.tr('no_branches')));
           }
           final (mapLat, mapLng) = _centroid(branches);
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return _MapPreview(
-                  l10n: l10n,
-                  latitude: mapLat,
-                  longitude: mapLng,
-                );
-              }
-              final branch = branches[index - 1];
-              return _BranchCard(branch: branch, l10n: l10n);
-            },
-            separatorBuilder: (_, i) =>
-                i == 0 ? const SizedBox(height: 18) : const SizedBox(height: 14),
-            itemCount: branches.length + 1,
+          return RefreshIndicator(
+            onRefresh: _pullRefresh,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return _MapPreview(
+                    l10n: l10n,
+                    latitude: mapLat,
+                    longitude: mapLng,
+                  );
+                }
+                final branch = branches[index - 1];
+                return _BranchCard(branch: branch, l10n: l10n);
+              },
+              separatorBuilder: (_, i) =>
+                  i == 0 ? const SizedBox(height: 18) : const SizedBox(height: 14),
+              itemCount: branches.length + 1,
+            ),
           );
         },
       ),
@@ -272,6 +285,25 @@ class _BranchCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (branch.posBranchCode != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.point_of_sale_rounded,
+                      size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${l10n.tr('branch_pos_code')}: ${branch.posBranchCode}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (branch.latitude != 0 || branch.longitude != 0) ...[
               const SizedBox(height: 14),
               Align(

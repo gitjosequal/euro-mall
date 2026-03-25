@@ -10,9 +10,12 @@ class AppConfigRepository {
 
   final ApiClient _client;
 
-  Future<AppRemoteConfig> fetchConfig() async {
+  Future<AppRemoteConfig> fetchConfig(String localeCode) async {
     final json = await _client.getJson('/app/config');
-    return AppRemoteConfig.fromJson(json);
+    return AppRemoteConfig.parse(
+      json,
+      localeCode: _localeQuery(localeCode),
+    );
   }
 }
 
@@ -132,14 +135,31 @@ class OrderHistoryRepository {
 
   final ApiClient _client;
 
-  Future<List<OrderHistoryItem>> fetchOrders() async {
-    final json = await _client.getJson('/orders');
+  /// Loyalty ledger rows + customer orders, newest first; includes currency for formatting.
+  Future<MemberActivityResult> fetchMemberActivity(String localeCode) async {
+    final json = await _client.getJson(
+      '/orders',
+      queryParameters: {'locale': _localeQuery(localeCode)},
+    );
     final list = json['data'] as List<dynamic>? ?? [];
-    return list
-        .map(
-          (e) => OrderHistoryItem.fromJson(Map<String, dynamic>.from(e as Map)),
-        )
-        .toList();
+    final meta = json['meta'] is Map
+        ? Map<String, dynamic>.from(json['meta'] as Map)
+        : <String, dynamic>{};
+    return MemberActivityResult(
+      items: list
+          .map(
+            (e) =>
+                OrderHistoryItem.fromJson(Map<String, dynamic>.from(e as Map)),
+          )
+          .toList(),
+      currencySymbol:
+          meta['currency_symbol']?.toString().trim().isNotEmpty == true
+              ? meta['currency_symbol'].toString().trim()
+              : 'JD',
+      currencyCode: meta['currency_code']?.toString().trim().isNotEmpty == true
+          ? meta['currency_code'].toString().trim()
+          : 'JOD',
+    );
   }
 }
 

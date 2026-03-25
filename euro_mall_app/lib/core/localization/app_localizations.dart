@@ -44,6 +44,7 @@ class AppLocalizations {
       'recent_transactions': 'Recent transactions',
       'view_all': 'View all',
       'earned': 'Earned',
+      'points_unit': 'pts',
       'redeemed': 'Redeemed',
       'points_history': 'Points history',
       'vouchers': 'Vouchers',
@@ -63,6 +64,14 @@ class AppLocalizations {
       'sign_in_required': 'Sign in to use this feature.',
       'retry': 'Retry',
       'load_error': 'Could not load content.',
+      'api_not_found':
+          'Nothing found on the server for this screen (404). The CMS page may be missing or the API URL is wrong.',
+      'no_branches': 'No branch locations published yet.',
+      'no_vouchers': 'No vouchers to show yet. Check back later or sign in.',
+      'points_program_empty':
+          'Points program text is empty. Your team can add Markdown in the CMS.',
+      'empty_cms_hint':
+          'Tip: publish this page in Laravel (cms_pages) or run EuroMallSeeder.',
       'contact_message': 'Message',
       'your_phone': 'Your phone',
       'send_message': 'Send message',
@@ -97,6 +106,7 @@ class AppLocalizations {
       'map_view': 'Locations',
       'tap_to_open_maps': 'Tap to open in Maps',
       'directions': 'Directions',
+      'branch_pos_code': 'POS branch code',
       'redeem_success': 'Voucher redeemed successfully',
       'maps_open_failed': 'Could not open Maps',
       'contact': 'Contact',
@@ -182,6 +192,7 @@ class AppLocalizations {
       'recent_transactions': 'أحدث العمليات',
       'view_all': 'عرض الكل',
       'earned': 'مكتسبة',
+      'points_unit': 'نقاط',
       'redeemed': 'مستبدلة',
       'points_history': 'سجل النقاط',
       'vouchers': 'القسائم',
@@ -201,6 +212,14 @@ class AppLocalizations {
       'sign_in_required': 'سجّل الدخول لاستخدام هذه الميزة.',
       'retry': 'إعادة المحاولة',
       'load_error': 'تعذر تحميل المحتوى.',
+      'api_not_found':
+          'لا يوجد محتوى على الخادم لهذه الشاشة (404). قد تكون الصفحة غير منشورة أو رابط الـ API غير صحيح.',
+      'no_branches': 'لا توجد فروع منشورة بعد.',
+      'no_vouchers': 'لا توجد قسائم حالياً. حاول لاحقاً أو سجّل الدخول.',
+      'points_program_empty':
+          'نص برنامج النقاط فارغ. يمكن للفريق إضافة محتوى Markdown من لوحة التحكم.',
+      'empty_cms_hint':
+          'تلميح: انشر الصفحة في Laravel (cms_pages) أو شغّل EuroMallSeeder.',
       'contact_message': 'الرسالة',
       'your_phone': 'هاتفك',
       'send_message': 'إرسال الرسالة',
@@ -235,6 +254,7 @@ class AppLocalizations {
       'map_view': 'المواقع',
       'tap_to_open_maps': 'اضغط لفتح الخريطة',
       'directions': 'الاتجاهات',
+      'branch_pos_code': 'رمز فرع نقطة البيع',
       'redeem_success': 'تم استبدال القسيمة بنجاح',
       'maps_open_failed': 'تعذر فتح الخرائط',
       'contact': 'اتصال',

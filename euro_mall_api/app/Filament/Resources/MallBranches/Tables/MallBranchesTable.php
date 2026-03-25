@@ -25,6 +25,10 @@ class MallBranchesTable
                     ->searchable(),
                 TextColumn::make('phone')
                     ->searchable(),
+                TextColumn::make('pos_branch_code')
+                    ->label('POS code')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('hours_en')
                     ->searchable(),
                 TextColumn::make('hours_ar')

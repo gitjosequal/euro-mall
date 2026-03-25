@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/api/api_user_message.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/models/models.dart';
 import '../../core/theme/app_colors.dart';
@@ -28,6 +29,11 @@ class _OffersPageState extends State<OffersPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _future ??= _load();
+  }
+
+  Future<void> _pullRefresh() async {
+    setState(() => _future = _load());
+    await _future;
   }
 
   @override
@@ -63,7 +69,10 @@ class _OffersPageState extends State<OffersPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(l10n.tr('load_error')),
+                    Text(
+                      apiErrorUserMessage(l10n, snapshot.error),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: () => setState(() => _future = _load()),
@@ -78,14 +87,19 @@ class _OffersPageState extends State<OffersPage> {
           if (offers.isEmpty) {
             return Center(child: Text(l10n.tr('no_offers')));
           }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-            itemBuilder: (context, index) {
-              final offer = offers[index];
-              return _OfferCard(offer: offer, dateFormat: dateFormat, l10n: l10n);
-            },
-            separatorBuilder: (_, index) => const SizedBox(height: 14),
-            itemCount: offers.length,
+          return RefreshIndicator(
+            onRefresh: _pullRefresh,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+              itemBuilder: (context, index) {
+                final offer = offers[index];
+                return _OfferCard(
+                    offer: offer, dateFormat: dateFormat, l10n: l10n);
+              },
+              separatorBuilder: (_, index) => const SizedBox(height: 14),
+              itemCount: offers.length,
+            ),
           );
         },
       ),

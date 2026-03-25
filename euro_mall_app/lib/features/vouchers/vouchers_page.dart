@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/api/api_user_message.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/models/models.dart';
 import '../../core/notifications/notification_service.dart';
@@ -33,6 +34,14 @@ class _VouchersPageState extends State<VouchersPage> {
     _future ??= _load();
   }
 
+  Future<void> _pullRefresh() async {
+    setState(() {
+      _sentExpiryReminder = false;
+      _future = _load();
+    });
+    await _future;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -54,7 +63,10 @@ class _VouchersPageState extends State<VouchersPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(l10n.tr('load_error')),
+                    Text(
+                      apiErrorUserMessage(l10n, snapshot.error),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: () => setState(() => _future = _load()),
@@ -82,21 +94,25 @@ class _VouchersPageState extends State<VouchersPage> {
             }
           }
           if (vouchers.isEmpty) {
-            return Center(child: Text(l10n.tr('no_history')));
+            return Center(child: Text(l10n.tr('no_vouchers')));
           }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-            itemBuilder: (context, index) {
-              final voucher = vouchers[index];
-              return _VoucherCard(
-                voucher: voucher,
-                dateFormat: dateFormat,
-                l10n: l10n,
-                onTap: () => context.go('/vouchers/${voucher.id}'),
-              );
-            },
-            separatorBuilder: (_, index) => const SizedBox(height: 14),
-            itemCount: vouchers.length,
+          return RefreshIndicator(
+            onRefresh: _pullRefresh,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+              itemBuilder: (context, index) {
+                final voucher = vouchers[index];
+                return _VoucherCard(
+                  voucher: voucher,
+                  dateFormat: dateFormat,
+                  l10n: l10n,
+                  onTap: () => context.go('/vouchers/${voucher.id}'),
+                );
+              },
+              separatorBuilder: (_, index) => const SizedBox(height: 14),
+              itemCount: vouchers.length,
+            ),
           );
         },
       ),

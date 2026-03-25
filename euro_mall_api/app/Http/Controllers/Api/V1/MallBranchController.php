@@ -29,6 +29,7 @@ class MallBranchController extends Controller
             'name' => $locale === 'ar' ? $b->name_ar : $b->name_en,
             'address' => $locale === 'ar' ? $b->address_ar : $b->address_en,
             'phone' => $b->phone,
+            'pos_branch_code' => $b->pos_branch_code,
             'hours' => $locale === 'ar' ? $b->hours_ar : $b->hours_en,
             'latitude' => (float) $b->latitude,
             'longitude' => (float) $b->longitude,

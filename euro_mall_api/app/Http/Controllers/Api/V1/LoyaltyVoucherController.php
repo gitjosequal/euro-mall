@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesSanctumUser;
 use App\Http\Controllers\Controller;
-use App\Models\LoyaltyRedemptionRule;
 use App\Models\LoyaltyVoucher;
 use App\Models\LoyaltyVoucherRedemption;
 use App\Models\User;
-use App\Services\PointsEngineService;
+use App\Services\VoucherRedemptionService;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 
@@ -23,6 +22,7 @@ class LoyaltyVoucherController extends Controller
 
         $rows = LoyaltyVoucher::query()
             ->where('is_active', true)
+            ->visibleToMember($user)
             ->orderBy('id')
             ->get();
 
@@ -42,6 +42,9 @@ class LoyaltyVoucherController extends Controller
         $locale = $request->get('locale', 'en') === 'ar' ? 'ar' : 'en';
         $user = $this->optionalSanctumUser($request);
         $v = LoyaltyVoucher::query()->where('is_active', true)->findOrFail($id);
+        if (! $v->isVisibleTo($user)) {
+            abort(404);
+        }
 
         $redeemedAt = null;
         if ($user) {
@@ -59,54 +62,24 @@ class LoyaltyVoucherController extends Controller
     /**
      * Record a one-time redemption for the authenticated member.
      */
-    public function redeem(Request $request, string $id, PointsEngineService $engine)
+    public function redeem(Request $request, string $id, VoucherRedemptionService $redemptions)
     {
         $v = LoyaltyVoucher::query()->where('is_active', true)->findOrFail($id);
-
-        if ($v->expires_at->isPast()) {
-            return response()->json([
-                'message' => 'This voucher has expired',
-            ], 422);
-        }
-
         $user = $request->user();
-        $exists = LoyaltyVoucherRedemption::query()
-            ->where('user_id', $user->id)
-            ->where('loyalty_voucher_id', $v->id)
-            ->exists();
 
-        if ($exists) {
-            return response()->json([
-                'message' => 'You have already redeemed this voucher',
-            ], 409);
+        if (! $v->isVisibleTo($user)) {
+            return response()->json(['message' => 'Voucher not found'], 404);
         }
 
-        $rule = LoyaltyRedemptionRule::query()->where('is_active', true)->first();
-        if ($rule && (int) $rule->points_required > 0) {
-            $pointsCost = (int) $rule->points_required;
-            if ((int) $user->current_points < $pointsCost) {
-                return response()->json([
-                    'message' => 'Insufficient points to redeem this voucher',
-                ], 422);
-            }
-
-            try {
-                $engine->redeemPoints(
-                    $user,
-                    $pointsCost,
-                    'voucher_redemption',
-                    (string) $v->id,
-                    ['voucher_code' => $v->code]
-                );
-            } catch (\DomainException $e) {
-                return response()->json(['message' => $e->getMessage()], 422);
-            }
+        try {
+            $redemptions->redeemForUser($user, $v, ['channel' => 'app']);
+        } catch (\InvalidArgumentException) {
+            return response()->json(['message' => 'This voucher has expired'], 422);
+        } catch (\RuntimeException) {
+            return response()->json(['message' => 'You have already redeemed this voucher'], 409);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-
-        LoyaltyVoucherRedemption::query()->create([
-            'user_id' => $user->id,
-            'loyalty_voucher_id' => $v->id,
-        ]);
 
         return response()->json([
             'data' => [

@@ -30,7 +30,9 @@ class _ContactPageState extends State<ContactPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _configFuture ??= context.read<AppConfigRepository>().fetchConfig();
+    _configFuture ??= context.read<AppConfigRepository>().fetchConfig(
+          Localizations.localeOf(context).languageCode,
+        );
   }
 
   @override
@@ -105,7 +107,9 @@ class _ContactPageState extends State<ContactPage> {
             return SettingsRetryBody(
               message: l10n.tr('load_error'),
               onRetry: () => setState(() {
-                _configFuture = context.read<AppConfigRepository>().fetchConfig();
+                _configFuture = context.read<AppConfigRepository>().fetchConfig(
+                      Localizations.localeOf(context).languageCode,
+                    );
               }),
             );
           }

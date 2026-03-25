@@ -54,12 +54,23 @@ class AppShell extends StatelessWidget {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Material(
-          elevation: 12,
-          shadowColor: Colors.black.withValues(alpha: 0.08),
-          color: Colors.white,
+          elevation: 0,
+          color: AppColors.background,
           child: Container(
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: AppColors.divider)),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              border: Border(
+                top: BorderSide(
+                  color: AppColors.divider.withValues(alpha: 0.9),
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  offset: const Offset(0, -2),
+                  blurRadius: 8,
+                ),
+              ],
             ),
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             child: Row(

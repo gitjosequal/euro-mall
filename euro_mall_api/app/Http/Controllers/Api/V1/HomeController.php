@@ -4,26 +4,35 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Concerns\ResolvesSanctumUser;
 use App\Http\Controllers\Controller;
-use App\Models\CustomerOrder;
+use App\Models\AppSetting;
 use App\Models\LoyaltyVoucher;
+use App\Services\MemberActivityFeedService;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
     use ResolvesSanctumUser;
 
-    public function dashboard(Request $request)
+    public function dashboard(Request $request, MemberActivityFeedService $activity)
     {
+        $locale = $request->get('locale', 'en') === 'ar' ? 'ar' : 'en';
         $user = $this->optionalSanctumUser($request);
+        $settings = AppSetting::query()->first();
 
         $activeVouchers = LoyaltyVoucher::query()
             ->where('is_active', true)
             ->where('expires_at', '>', now())
+            ->visibleToMember($user)
             ->count();
+
+        $currencyBlock = [
+            'currency_symbol' => $settings?->currency_symbol ?? 'JD',
+            'currency_code' => $settings?->currency_code ?? 'JOD',
+        ];
 
         if (! $user) {
             return response()->json([
-                'data' => [
+                'data' => array_merge([
                     'guest' => true,
                     'display_name' => null,
                     'tier_name' => null,
@@ -33,26 +42,14 @@ class HomeController extends Controller
                     'points_today' => 0,
                     'active_vouchers_count' => $activeVouchers,
                     'recent_transactions' => [],
-                ],
+                ], $currencyBlock),
             ]);
         }
 
-        $recent = CustomerOrder::query()
-            ->where('user_id', $user->id)
-            ->orderByDesc('ordered_at')
-            ->limit(5)
-            ->get()
-            ->map(fn (CustomerOrder $o) => [
-                'id' => (string) $o->id,
-                'title' => $o->title,
-                'date' => $o->ordered_at->toIso8601String(),
-                'amount' => (float) $o->amount,
-                'points' => (int) $o->points,
-                'earned' => (bool) $o->earned,
-            ]);
+        $recent = $activity->itemsForUser($user, $locale, 5);
 
         return response()->json([
-            'data' => [
+            'data' => array_merge([
                 'guest' => false,
                 'display_name' => $user->name,
                 'tier_name' => $user->tier_name,
@@ -62,7 +59,7 @@ class HomeController extends Controller
                 'points_today' => (int) $user->points_earned_today,
                 'active_vouchers_count' => $activeVouchers,
                 'recent_transactions' => $recent,
-            ],
+            ], $currencyBlock),
         ]);
     }
 }

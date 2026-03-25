@@ -11,6 +11,8 @@ class DashboardSnapshot {
     required this.pointsToday,
     required this.activeVouchersCount,
     required this.recentTransactions,
+    this.currencySymbol = 'JD',
+    this.currencyCode = 'JOD',
   });
 
   final bool guest;
@@ -22,6 +24,9 @@ class DashboardSnapshot {
   final int pointsToday;
   final int activeVouchersCount;
   final List<WalletTransaction> recentTransactions;
+  /// From server [app_settings] via dashboard payload.
+  final String currencySymbol;
+  final String currencyCode;
 
   TierInfo get tier => TierInfo(
         name: tierName ?? '',
@@ -59,6 +64,12 @@ class DashboardSnapshot {
           ? raw['active_vouchers_count'] as int
           : int.tryParse(raw['active_vouchers_count']?.toString() ?? '0') ?? 0,
       recentTransactions: txs,
+      currencySymbol: raw['currency_symbol']?.toString().trim().isNotEmpty == true
+          ? raw['currency_symbol'].toString().trim()
+          : 'JD',
+      currencyCode: raw['currency_code']?.toString().trim().isNotEmpty == true
+          ? raw['currency_code'].toString().trim()
+          : 'JOD',
     );
   }
 }

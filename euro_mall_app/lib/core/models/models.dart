@@ -134,6 +134,8 @@ class Branch {
   final String name;
   final String address;
   final String phone;
+  /// Matches `branch_code` sent from POS when configured in admin.
+  final String? posBranchCode;
   final String hours;
   final double latitude;
   final double longitude;
@@ -144,6 +146,7 @@ class Branch {
     required this.name,
     required this.address,
     required this.phone,
+    this.posBranchCode,
     required this.hours,
     required this.latitude,
     required this.longitude,
@@ -151,11 +154,13 @@ class Branch {
   });
 
   factory Branch.fromApiJson(Map<String, dynamic> json) {
+    final code = json['pos_branch_code']?.toString();
     return Branch(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
       phone: json['phone']?.toString() ?? '',
+      posBranchCode: (code != null && code.isNotEmpty) ? code : null,
       hours: json['hours']?.toString() ?? '',
       latitude: (json['latitude'] is num)
           ? (json['latitude'] as num).toDouble()

@@ -23,6 +23,10 @@ class MallBranchForm
                 TextInput::make('phone')
                     ->tel()
                     ->required(),
+                TextInput::make('pos_branch_code')
+                    ->label('POS branch code')
+                    ->maxLength(64)
+                    ->helperText('Sent with POS invoices as branch_code; must match what the till sends.'),
                 TextInput::make('hours_en')
                     ->required(),
                 TextInput::make('hours_ar')

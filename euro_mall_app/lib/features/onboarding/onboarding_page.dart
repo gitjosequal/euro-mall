@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/localization/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimens.dart';
+import '../../data/repositories/api_repositories.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -15,27 +17,74 @@ class OnboardingPage extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _controller = PageController();
   int _index = 0;
+  Future<List<_Slide>>? _slidesFuture;
 
-  List<_Slide> _slides(AppLocalizations l10n) => [
-    _Slide(
-      title: l10n.tr('onboard_title_1'),
-      body: l10n.tr('onboard_body_1'),
-      icon: Icons.star_rounded,
-    ),
-    _Slide(
-      title: l10n.tr('onboard_title_2'),
-      body: l10n.tr('onboard_body_2'),
-      icon: Icons.qr_code_2_rounded,
-    ),
-    _Slide(
-      title: l10n.tr('onboard_title_3'),
-      body: l10n.tr('onboard_body_3'),
-      icon: Icons.location_on_rounded,
-    ),
-  ];
+  static IconData _iconForKey(String key) {
+    switch (key) {
+      case 'qr_code_2_rounded':
+        return Icons.qr_code_2_rounded;
+      case 'location_on_rounded':
+        return Icons.location_on_rounded;
+      case 'storefront_rounded':
+        return Icons.storefront_rounded;
+      case 'star_rounded':
+      default:
+        return Icons.star_rounded;
+    }
+  }
 
-  void _next(AppLocalizations l10n) {
-    final slides = _slides(l10n);
+  List<_Slide> _fallbackSlides(AppLocalizations l10n) => [
+        _Slide(
+          title: l10n.tr('onboard_title_1'),
+          body: l10n.tr('onboard_body_1'),
+          icon: Icons.star_rounded,
+        ),
+        _Slide(
+          title: l10n.tr('onboard_title_2'),
+          body: l10n.tr('onboard_body_2'),
+          icon: Icons.qr_code_2_rounded,
+        ),
+        _Slide(
+          title: l10n.tr('onboard_title_3'),
+          body: l10n.tr('onboard_body_3'),
+          icon: Icons.location_on_rounded,
+        ),
+      ];
+
+  Future<List<_Slide>> _loadSlides() async {
+    final l10n = AppLocalizations.of(context);
+    final lc = Localizations.localeOf(context).languageCode;
+    try {
+      final cfg =
+          await context.read<AppConfigRepository>().fetchConfig(lc);
+      if (cfg.onboardingSlides.isNotEmpty) {
+        return cfg.onboardingSlides
+            .map(
+              (s) => _Slide(
+                title: s.title,
+                body: s.body,
+                icon: _iconForKey(s.iconKey),
+              ),
+            )
+            .toList();
+      }
+    } catch (_) {}
+    return _fallbackSlides(l10n);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _slidesFuture ??= _loadSlides();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _next(List<_Slide> slides, AppLocalizations l10n) {
     if (_index == slides.length - 1) {
       context.go('/auth/phone');
     } else {
@@ -49,84 +98,97 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final slides = _slides(l10n);
-    final progress = (_index + 1) / slides.length;
+    return FutureBuilder<List<_Slide>>(
+      future: _slidesFuture,
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        final slides = (snap.hasData && snap.data!.isNotEmpty)
+            ? snap.data!
+            : _fallbackSlides(l10n);
+        final progress = (_index + 1) / slides.length;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 4,
+                            backgroundColor: AppColors.divider,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      TextButton(
+                        onPressed: () => context.go('/auth/phone'),
+                        child: Text(l10n.tr('skip')),
+                      ),
+                    ],
+                  ),
                   Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 4,
-                        backgroundColor: AppColors.divider,
-                        color: AppColors.primary,
+                    child: PageView.builder(
+                      controller: _controller,
+                      onPageChanged: (i) => setState(() => _index = i),
+                      itemCount: slides.length,
+                      itemBuilder: (_, i) => _OnboardSlide(slide: slides[i]),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      slides.length,
+                      (i) => AnimatedContainer(
+                        duration: AppDimens.animFast,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        height: 8,
+                        width: _index == i ? 26 : 8,
+                        decoration: BoxDecoration(
+                          color: _index == i
+                              ? AppColors.primary
+                              : AppColors.divider,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  TextButton(
-                    onPressed: () => context.go('/auth/phone'),
-                    child: Text(l10n.tr('skip')),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    height: 52,
+                    child: FilledButton(
+                      onPressed: () => _next(slides, l10n),
+                      child: Text(
+                        _index == slides.length - 1
+                            ? l10n.tr('start_now')
+                            : l10n.tr('next'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
                   ),
+                  const SizedBox(height: 8),
                 ],
               ),
-              Expanded(
-                child: PageView.builder(
-                  controller: _controller,
-                  onPageChanged: (i) => setState(() => _index = i),
-                  itemCount: slides.length,
-                  itemBuilder: (_, i) => _OnboardSlide(slide: slides[i]),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  slides.length,
-                  (i) => AnimatedContainer(
-                    duration: AppDimens.animFast,
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    height: 8,
-                    width: _index == i ? 26 : 8,
-                    decoration: BoxDecoration(
-                      color: _index == i
-                          ? AppColors.primary
-                          : AppColors.divider,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
-                height: 52,
-                child: FilledButton(
-                  onPressed: () => _next(l10n),
-                  child: Text(
-                    _index == slides.length - 1
-                        ? l10n.tr('start_now')
-                        : l10n.tr('next'),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

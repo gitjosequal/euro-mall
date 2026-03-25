@@ -189,6 +189,44 @@ class InfoPill extends StatelessWidget {
   }
 }
 
+/// Circular light header action (e.g. dashboard welcome row). Keeps shell styling in core; features pass [onTap].
+class AppHeaderCircleIconButton extends StatelessWidget {
+  const AppHeaderCircleIconButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.iconColor,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = iconColor ?? AppColors.textPrimary;
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 0,
+      shadowColor: Colors.black.withValues(alpha: 0.06),
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(icon, color: color, size: 24),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,

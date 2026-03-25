@@ -3,12 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/api/api_user_message.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/models/models.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/ui_components.dart';
 import '../../data/api/dashboard_models.dart';
+import '../../data/auth_token_store.dart';
 import '../../data/repositories/loyalty_content_repository.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -38,13 +40,16 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
+  Future<void> _pullRefresh() async {
+    setState(() {
+      _future = _load();
+    });
+    await _future;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final currencyFormat = NumberFormat.currency(
-      symbol: 'JD ',
-      decimalDigits: 2,
-    );
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -62,8 +67,10 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(l10n.tr('load_error'),
-                        textAlign: TextAlign.center),
+                    Text(
+                      apiErrorUserMessage(l10n, snapshot.error),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: _retry,
@@ -75,6 +82,11 @@ class _DashboardPageState extends State<DashboardPage> {
             );
           }
           final dash = snapshot.data!;
+          final currencyFormat = NumberFormat.currency(
+            name: dash.currencyCode,
+            symbol: '${dash.currencySymbol} ',
+            decimalDigits: 2,
+          );
           final tier = dash.tier;
           final transactions = dash.recentTransactions;
           final displayName =
@@ -84,9 +96,13 @@ class _DashboardPageState extends State<DashboardPage> {
           final ptsToday =
               dash.pointsToday >= 0 ? '+${dash.pointsToday}' : '${dash.pointsToday}';
 
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
+          return RefreshIndicator(
+            onRefresh: _pullRefresh,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              slivers: [
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
@@ -123,23 +139,17 @@ class _DashboardPageState extends State<DashboardPage> {
                           ],
                         ),
                       ),
-                      Material(
-                        color: Colors.white,
-                        shape: const CircleBorder(),
-                        elevation: 0,
-                        shadowColor: Colors.black.withValues(alpha: 0.06),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () {},
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Icon(
-                              Icons.notifications_outlined,
-                              color: AppColors.textPrimary,
-                              size: 24,
-                            ),
-                          ),
-                        ),
+                      AppHeaderCircleIconButton(
+                        icon: Icons.notifications_outlined,
+                        tooltip: l10n.tr('notifications'),
+                        onTap: () {
+                          final token = context.read<AuthTokenStore>().token;
+                          if (token == null || token.isEmpty) {
+                            context.push('/auth/phone');
+                          } else {
+                            context.push('/settings/notifications');
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -233,6 +243,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
             ],
+            ),
           );
         },
       ),
@@ -481,7 +492,8 @@ class _TransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEarned = transaction.earned;
-    final pointsLabel = '${isEarned ? '+' : ''}${transaction.points}';
+    final pointsLabel =
+        '${isEarned ? '+' : '-'}${transaction.points} ${l10n.tr('points_unit')}';
     final dateLabel = DateFormat('dd MMM, h:mm a').format(transaction.date);
 
     return Material(

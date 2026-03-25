@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -27,7 +28,9 @@ class _SettingsHubPageState extends State<SettingsHubPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _userFuture ??= context.read<UserRepository>().fetchMe();
-    _configFuture ??= context.read<AppConfigRepository>().fetchConfig();
+    _configFuture ??= context.read<AppConfigRepository>().fetchConfig(
+          Localizations.localeOf(context).languageCode,
+        );
   }
 
   void _reloadUser() {
@@ -37,7 +40,15 @@ class _SettingsHubPageState extends State<SettingsHubPage> {
   }
 
   Future<void> _logout() async {
-    await context.read<AuthTokenStore>().setToken(null);
+    final devices = context.read<DeviceTokenRepository>();
+    final auth = context.read<AuthTokenStore>();
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        await devices.unregister(token);
+      }
+    } catch (_) {}
+    await auth.setToken(null);
     if (mounted) context.go('/auth/phone');
   }
 

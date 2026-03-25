@@ -3,8 +3,9 @@
 namespace App\Filament\Resources\LoyaltyVouchers\Schemas;
 
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
@@ -37,6 +38,14 @@ class LoyaltyVoucherForm
                     ->numeric(),
                 Toggle::make('is_active')
                     ->required(),
+                Select::make('assignedUsers')
+                    ->label('Restricted to members')
+                    ->relationship('assignedUsers', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
+                    ->columnSpanFull()
+                    ->helperText('Leave empty: visible to everyone. If you pick members, only they see this voucher.'),
             ]);
     }
 }

@@ -28,6 +28,31 @@ class EuroMallSeeder extends Seeder
                 'developer_name' => 'Josequal',
                 'developer_url' => 'https://www.josequal.com',
                 'display_version' => '',
+                'currency_symbol' => 'JD',
+                'currency_code' => 'JOD',
+                'onboarding_slides' => [
+                    [
+                        'title_en' => 'Earn on every visit',
+                        'title_ar' => 'اكسب في كل زيارة',
+                        'body_en' => 'Shop at Euro Mall and collect loyalty points on qualifying spend.',
+                        'body_ar' => 'تسوّق في يورو مول واجمع نقاط الولاء على الإنفاق المؤهل.',
+                        'icon' => 'star_rounded',
+                    ],
+                    [
+                        'title_en' => 'Redeem rewards',
+                        'title_ar' => 'استبدل المكافآت',
+                        'body_en' => 'Turn points into vouchers and show your code at checkout.',
+                        'body_ar' => 'حوّل النقاط إلى قسائم واعرض الرمز عند الدفع.',
+                        'icon' => 'qr_code_2_rounded',
+                    ],
+                    [
+                        'title_en' => 'Find branches easily',
+                        'title_ar' => 'اعثر على الفروع بسهولة',
+                        'body_en' => 'See locations, hours, and directions in one place.',
+                        'body_ar' => 'اعرض المواقع والساعات والاتجاهات في مكان واحد.',
+                        'icon' => 'location_on_rounded',
+                    ],
+                ],
                 'social_links' => [
                     ['label' => 'Instagram', 'url' => 'https://instagram.com/', 'icon' => 'instagram'],
                     ['label' => 'Facebook', 'url' => 'https://facebook.com/', 'icon' => 'facebook'],

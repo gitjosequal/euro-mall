@@ -14,6 +14,27 @@ class SocialLink {
   }
 }
 
+/// Remote-driven onboarding slide (falls back to local l10n if [slides] empty).
+class OnboardingSlideRemote {
+  const OnboardingSlideRemote({
+    required this.title,
+    required this.body,
+    required this.iconKey,
+  });
+
+  final String title;
+  final String body;
+  final String iconKey;
+
+  factory OnboardingSlideRemote.fromJson(Map<String, dynamic> json) {
+    return OnboardingSlideRemote(
+      title: json['title']?.toString() ?? '',
+      body: json['body']?.toString() ?? '',
+      iconKey: json['icon']?.toString() ?? 'star_rounded',
+    );
+  }
+}
+
 /// Public app metadata managed in the admin backend (no hardcoded marketing copy).
 class AppRemoteConfig {
   const AppRemoteConfig({
@@ -22,6 +43,9 @@ class AppRemoteConfig {
     this.developerName,
     this.developerUrl,
     this.displayVersion,
+    this.currencySymbol = 'JD',
+    this.currencyCode = 'JOD',
+    this.onboardingSlides = const [],
   });
 
   final String? supportPhone;
@@ -29,8 +53,15 @@ class AppRemoteConfig {
   final String? developerName;
   final String? developerUrl;
   final String? displayVersion;
+  final String currencySymbol;
+  final String currencyCode;
+  final List<OnboardingSlideRemote> onboardingSlides;
 
-  factory AppRemoteConfig.fromJson(Map<String, dynamic> json) {
+  /// [localeCode] picks `title_en`/`title_ar` etc. for onboarding slides from the API.
+  factory AppRemoteConfig.parse(
+    Map<String, dynamic> json, {
+    String localeCode = 'en',
+  }) {
     final raw = json['data'] is Map<String, dynamic>
         ? json['data'] as Map<String, dynamic>
         : json;
@@ -38,12 +69,37 @@ class AppRemoteConfig {
         .map((e) => SocialLink.fromJson(Map<String, dynamic>.from(e as Map)))
         .where((l) => l.url.isNotEmpty)
         .toList();
+    final ar = localeCode == 'ar';
+    final slideMaps = (raw['onboarding_slides'] as List<dynamic>? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .map((m) {
+          final title = ar
+              ? (m['title_ar']?.toString() ?? m['title_en']?.toString() ?? '')
+              : (m['title_en']?.toString() ?? m['title_ar']?.toString() ?? '');
+          final body = ar
+              ? (m['body_ar']?.toString() ?? m['body_en']?.toString() ?? '')
+              : (m['body_en']?.toString() ?? m['body_ar']?.toString() ?? '');
+          return OnboardingSlideRemote(
+            title: title,
+            body: body,
+            iconKey: m['icon']?.toString() ?? 'star_rounded',
+          );
+        })
+        .where((s) => s.title.isNotEmpty)
+        .toList();
     return AppRemoteConfig(
       supportPhone: raw['support_phone']?.toString(),
       socialLinks: links,
       developerName: raw['developer_name']?.toString(),
       developerUrl: raw['developer_url']?.toString(),
       displayVersion: raw['display_version']?.toString(),
+      currencySymbol: raw['currency_symbol']?.toString().trim().isNotEmpty == true
+          ? raw['currency_symbol'].toString().trim()
+          : 'JD',
+      currencyCode: raw['currency_code']?.toString().trim().isNotEmpty == true
+          ? raw['currency_code'].toString().trim()
+          : 'JOD',
+      onboardingSlides: slideMaps,
     );
   }
 }
@@ -190,6 +246,19 @@ class OrderHistoryItem {
       earned: json['earned'] == true || json['type']?.toString() == 'earn',
     );
   }
+}
+
+/// `GET /orders` — unified ledger + orders with currency meta.
+class MemberActivityResult {
+  const MemberActivityResult({
+    required this.items,
+    required this.currencySymbol,
+    required this.currencyCode,
+  });
+
+  final List<OrderHistoryItem> items;
+  final String currencySymbol;
+  final String currencyCode;
 }
 
 class PointsSchemaContent {

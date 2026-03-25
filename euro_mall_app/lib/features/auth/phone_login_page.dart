@@ -1,3 +1,4 @@
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -17,27 +18,33 @@ class PhoneLoginPage extends StatefulWidget {
 }
 
 class _PhoneLoginPageState extends State<PhoneLoginPage> {
-  String _countryCode = '+962';
+  final CountryService _countryService = CountryService();
+  late Country _country;
   final _phoneCtrl = TextEditingController();
+  final _phoneFocus = FocusNode();
   bool _loading = false;
+  bool _phoneFocused = false;
 
-  static const _codes = [
-    ('+962', 'JO'),
-    ('+971', 'AE'),
-    ('+966', 'SA'),
-    ('+20', 'EG'),
-    ('+1', 'US'),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _country = _countryService.findByCode('JO') ?? _countryService.getAll().first;
+    _phoneFocus.addListener(() {
+      final f = _phoneFocus.hasFocus;
+      if (_phoneFocused != f) setState(() => _phoneFocused = f);
+    });
+  }
 
   @override
   void dispose() {
     _phoneCtrl.dispose();
+    _phoneFocus.dispose();
     super.dispose();
   }
 
   String get _e164 {
     final digits = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
-    return '$_countryCode$digits';
+    return '+${_country.phoneCode}$digits';
   }
 
   Future<void> _continue() async {
@@ -65,10 +72,58 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
     }
   }
 
+  void _openCountryPicker() {
+    final theme = Theme.of(context);
+    final mq = MediaQuery.of(context);
+    showCountryPicker(
+      context: context,
+      showPhoneCode: true,
+      showSearch: true,
+      useSafeArea: true,
+      favorite: const ['JO'],
+      countryListTheme: CountryListThemeData(
+        flagSize: 28,
+        backgroundColor: AppColors.surface,
+        textStyle: theme.textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        searchTextStyle: theme.textTheme.bodyLarge,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        bottomSheetHeight: mq.size.height * 0.88,
+        inputDecoration: InputDecoration(
+          hintText: 'Search country or dial code',
+          prefixIcon: const Icon(Icons.search_rounded),
+          filled: true,
+          fillColor: AppColors.surfaceMuted,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: AppColors.outlineSubtle.withValues(alpha: 0.95),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          ),
+        ),
+      ),
+      onSelect: (Country c) {
+        setState(() => _country = c);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final borderColor = _phoneFocused
+        ? AppColors.primary
+        : AppColors.outlineSubtle.withValues(alpha: 0.95);
+    final borderWidth = _phoneFocused ? 2.0 : 1.0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -130,37 +185,6 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      l10n.tr('country_code'),
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      key: ValueKey(_countryCode),
-                      initialValue: _countryCode,
-                      decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.public_rounded),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      items: _codes
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e.$1,
-                              child: Text('${e.$1}  ${e.$2}'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) {
-                        if (v != null) setState(() => _countryCode = v);
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
                       l10n.tr('mobile_number'),
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: AppColors.textSecondary,
@@ -168,17 +192,96 @@ class _PhoneLoginPageState extends State<PhoneLoginPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    TextField(
-                      controller: _phoneCtrl,
-                      keyboardType: TextInputType.phone,
-                      autofocus: false,
-                      decoration: InputDecoration(
-                        hintText: l10n.tr('phone_hint'),
-                        prefixIcon: const Icon(Icons.phone_android_rounded),
-                        prefixText: '$_countryCode ',
-                        prefixStyle: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOut,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: borderColor,
+                          width: borderWidth,
+                        ),
+                      ),
+                      child: Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _openCountryPicker,
+                                borderRadius: const BorderRadius.horizontal(
+                                  left: Radius.circular(13),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    14,
+                                    10,
+                                    14,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _country.flagEmoji,
+                                        style: const TextStyle(fontSize: 24),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '+${_country.phoneCode}',
+                                        style: theme.textTheme.bodyLarge
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_drop_down_rounded,
+                                        color: AppColors.textSecondary,
+                                        size: 26,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 28,
+                              color: AppColors.divider.withValues(alpha: 0.9),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: _phoneCtrl,
+                                focusNode: _phoneFocus,
+                                keyboardType: TextInputType.phone,
+                                textInputAction: TextInputAction.done,
+                                onSubmitted: (_) => _continue(),
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  hintText: l10n.tr('phone_hint'),
+                                  hintStyle: theme.textTheme.bodyLarge
+                                      ?.copyWith(
+                                    color: AppColors.textTertiary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  border: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

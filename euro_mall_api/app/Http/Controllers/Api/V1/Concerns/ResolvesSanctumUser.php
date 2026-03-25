@@ -10,6 +10,11 @@ trait ResolvesSanctumUser
 {
     protected function optionalSanctumUser(Request $request): ?User
     {
+        $authUser = $request->user();
+        if ($authUser instanceof User) {
+            return $authUser;
+        }
+
         $token = $request->bearerToken();
         if (! $token) {
             return null;

@@ -1,6 +1,6 @@
-/// Staging / production API base URL.
+/// Backend API base URL (Laravel `/api/v1`).
 ///
-/// Default points to **staging**. Override for other environments:
+/// Default: **https://euromall.josequal.net/api/v1**. Override for local or other hosts:
 /// ```bash
 /// flutter run --dart-define=API_BASE_URL=https://other-host.example.com/api/v1
 /// ```

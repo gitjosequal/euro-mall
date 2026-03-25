@@ -32,7 +32,7 @@ Monorepo: `euro_mall_api` (Laravel), `euro_mall_app` (Flutter).
 
 ## Mobile app (release)
 
-1. Point **`AppEnvironment.apiBaseUrl`** (or your flavor) to production `https://host/api/v1/`.  
+1. Point **`AppEnvironment.apiBaseUrl`** (or your flavor) to `https://euromall.josequal.net/api/v1/` (default in the app) or your own host.  
 2. Add production **Firebase** configs (Android `google-services.json`, iOS `GoogleService-Info.plist`).  
 3. Build: `flutter build apk` / `flutter build ipa` with correct signing.
 
